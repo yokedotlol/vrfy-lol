@@ -5,6 +5,7 @@
 import type {
   VrfyResponse, ValidationResult, MxResult,
   ProviderInfo, Env, DomainCacheEntry,
+  SecurityResult, HeuristicResult,
 } from './types';
 import { validateSyntax } from './validators/syntax';
 import { checkMx } from './validators/mx';
@@ -17,6 +18,16 @@ import { isDisposableDomain } from './data/disposable';
 import { isFreeProvider } from './data/free-providers';
 import { determineAction } from './validators/action';
 import { classifyConfidence } from './validators/confidence';
+import {
+  checkDmarc, checkSpf, checkBimi, checkMtaSts,
+  buildSecurityResult,
+} from './validators/dns-security';
+import {
+  checkRiskyTld, checkDomainEntropy, checkSpamTrap,
+} from './validators/domain-heuristics';
+import {
+  fingerprintMx, isSelfHostedMx,
+} from './validators/mx-fingerprint';
 
 const VERSION = '1.0.0';
 const DOMAIN_CACHE_TTL = 604800;   // 7 days in seconds
@@ -47,7 +58,7 @@ export async function validateEmail(
 
   if (!syntax.valid || !syntax.domain || !syntax.local_part) {
     // Invalid syntax — return immediately, no DNS needed
-    return buildResponse(email, syntax, null, null, false, false, false, null, false, null, null, null, startMs, false, null);
+    return buildResponse(email, syntax, null, null, false, false, false, null, false, null, null, null, startMs, false, null, null, null);
   }
 
   const domain = syntax.domain;
@@ -71,6 +82,8 @@ export async function validateEmail(
   let freeProvider: boolean;
   let privacyRelay: boolean;
   let privacyRelayService: string | null;
+  let security: SecurityResult | null = null;
+  let heuristics: HeuristicResult | null = null;
 
   if (domainCache) {
     mx = domainCache.mx;
@@ -79,6 +92,8 @@ export async function validateEmail(
     freeProvider = domainCache.is_free_provider;
     privacyRelay = domainCache.is_privacy_relay;
     privacyRelayService = domainCache.privacy_relay_service;
+    security = domainCache.security;
+    heuristics = domainCache.heuristics;
   } else {
     // Run domain checks — MX is async, rest are sync
     const privacyResult = checkPrivacyRelay(domain);
@@ -92,11 +107,43 @@ export async function validateEmail(
       disposable = false;
     }
 
-    // MX lookup (async)
-    mx = await checkMx(domain);
+    // MX lookup (async) + DNS security checks (async, parallel)
+    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult] = options.quick
+      ? [await checkMx(domain), null, null, null, null]
+      : await Promise.all([
+          checkMx(domain),
+          checkDmarc(domain),
+          checkSpf(domain),
+          checkBimi(domain),
+          checkMtaSts(domain),
+        ]);
+
+    mx = mxResult;
 
     // Provider detection from MX
     provider = mx.has_mx ? detectProvider(mx.mx_records.map(r => r.host)) : null;
+
+    // Build security result if we ran the checks
+    if (dmarcResult && spfResult && bimiResult && mtaStsResult) {
+      security = buildSecurityResult(dmarcResult, spfResult, bimiResult, mtaStsResult);
+    }
+
+    // Domain heuristics (sync, instant)
+    const riskyTld = checkRiskyTld(domain);
+    const entropy = checkDomainEntropy(domain);
+    const mxFp = fingerprintMx(mx.mx_records);
+    const selfHosted = isSelfHostedMx(mx.mx_records, domain);
+
+    heuristics = {
+      risky_tld: riskyTld.is_risky_tld,
+      tld: riskyTld.tld,
+      domain_entropy: entropy.entropy,
+      entropy_suspicious: entropy.is_suspicious,
+      spam_trap: false,  // per-email, handled below
+      spam_trap_pattern: null,
+      mx_provider_class: selfHosted ? 'self-hosted' : mxFp.mx_provider_class,
+      mx_security_gateway: mxFp.mx_security_gateway,
+    };
 
     // Cache domain-level results (7-day TTL)
     await putDomainCache(env, domain, {
@@ -106,6 +153,8 @@ export async function validateEmail(
       is_free_provider: freeProvider,
       is_privacy_relay: privacyRelay,
       privacy_relay_service: privacyRelayService,
+      security,
+      heuristics,
       cached_at: Date.now(),
     });
   }
@@ -114,6 +163,16 @@ export async function validateEmail(
   const roleAccount = isRoleAccount(localPart);
   const typo = detectTypo(domain);
   const subaddress = detectSubaddress(localPart, domain);
+  const spamTrap = checkSpamTrap(localPart);
+
+  // Merge per-email spam trap into heuristics (domain part is cached, local part isn't)
+  const emailHeuristics: HeuristicResult | null = heuristics
+    ? {
+        ...heuristics,
+        spam_trap: spamTrap.is_spam_trap,
+        spam_trap_pattern: spamTrap.pattern,
+      }
+    : null;
 
   // Assemble typo suggestion with full email
   const typoSuggestion = typo.has_typo && typo.suggested_domain
@@ -130,7 +189,7 @@ export async function validateEmail(
     email, syntax, mx, provider, disposable, freeProvider,
     privacyRelay, privacyRelayService, roleAccount,
     typo, typoSuggestion, subaddress, startMs, cached,
-    extendedScore,
+    extendedScore, security, emailHeuristics,
   );
 }
 
@@ -282,6 +341,8 @@ function countSignals(
   provider: ProviderInfo | null,
   subaddressIsSubaddressed: boolean,
   extendedScore: number | null,
+  security: SecurityResult | null,
+  heuristics: HeuristicResult | null,
 ): SignalsCount {
   let total = 0;
   let positive = 0;
@@ -298,6 +359,26 @@ function countSignals(
   // subaddress is neutral, just a flag
   total++;
   if (!subaddressIsSubaddressed) positive++;
+
+  // Security signals (Phase 1)
+  if (security) {
+    total++; if (security.spf) positive++;              // SPF present
+    total++; if (security.dmarc.found) positive++;      // DMARC present
+    total++; if (security.bimi) positive++;             // BIMI present
+    total++; if (security.mta_sts) positive++;          // MTA-STS present
+    // Security grade as a signal: A or better = positive
+    total++;
+    if (security.grade === 'A' || security.grade === 'A+') positive++;
+  }
+
+  // Heuristic signals (Phase 1)
+  if (heuristics) {
+    total++; if (!heuristics.risky_tld) positive++;     // not risky TLD
+    total++; if (!heuristics.entropy_suspicious) positive++; // not random domain
+    total++; if (!heuristics.spam_trap) positive++;     // not spam trap
+    total++;                                            // mx class known
+    if (heuristics.mx_provider_class !== 'unknown') positive++;
+  }
 
   // Extended validation (opaque score → binary signal)
   if (extendedScore !== null) {
@@ -332,6 +413,8 @@ function buildResponse(
   startMs: number,
   cached: boolean,
   extendedScore: number | null,
+  security: SecurityResult | null,
+  heuristics: HeuristicResult | null,
 ): VrfyResponse {
   const effectiveMx: MxResult = mx ?? {
     has_mx: false,
@@ -366,6 +449,38 @@ function buildResponse(
     has_typo: typo?.has_typo ?? false,
   });
 
+  // Phase 1 heuristic adjustments
+  if (heuristics) {
+    // Spam trap → block
+    if (heuristics.spam_trap && action !== 'block') {
+      action = 'block';
+    }
+    // Risky TLD → bump toward verify
+    if (heuristics.risky_tld && action === 'allow') {
+      action = 'verify';
+    }
+    // High entropy domain → bump toward verify
+    if (heuristics.entropy_suspicious && action === 'allow') {
+      action = 'verify';
+    }
+    // Risky TLD or suspicious entropy → reduce confidence
+    if ((heuristics.risky_tld || heuristics.entropy_suspicious) && confidence === 'valid') {
+      confidence = 'likely_valid';
+    }
+  }
+
+  // Security posture adjustments
+  if (security) {
+    // Strong security grade → boost confidence
+    if ((security.grade === 'A' || security.grade === 'A+') && confidence === 'likely_valid') {
+      confidence = 'valid';
+    }
+    // No SPF + no DMARC → reduce confidence slightly
+    if (!security.spf && !security.dmarc.found && confidence === 'valid') {
+      confidence = 'likely_valid';
+    }
+  }
+
   // Extended validation can boost confidence and promote action
   if (extendedScore !== null && extendedScore > 0.5) {
     if (confidence === 'likely_valid') {
@@ -381,6 +496,7 @@ function buildResponse(
     syntax, mx, disposable, freeProvider, privacyRelay,
     roleAccount, typo?.has_typo ?? false, provider,
     subaddress?.is_subaddressed ?? false, extendedScore,
+    security, heuristics,
   );
 
   const validation: ValidationResult = {
@@ -405,7 +521,9 @@ function buildResponse(
     action,
     confidence,
     validation,
-    // enrichment and security omitted until Phase 2/3
+    // enrichment and security in response
+    ...(security ? { security } : {}),
+    ...(heuristics ? { heuristics } : {}),
     _meta: {
       signals: signals.total,
       signals_positive: signals.positive,

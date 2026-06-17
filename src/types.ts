@@ -10,6 +10,7 @@ export interface VrfyResponse {
   validation: ValidationResult;
   enrichment?: EnrichmentResult;
   security?: SecurityResult;
+  heuristics?: HeuristicResult;
   _meta: MetaResult;
 }
 
@@ -51,6 +52,18 @@ export interface EnrichmentResult {
   dnsbl_listed: boolean;
   dnsbl_lists_checked: number;
   catch_all_likely: boolean;
+}
+
+/** Phase 1 heuristic signals — local computation, no network */
+export interface HeuristicResult {
+  risky_tld: boolean;
+  tld: string;
+  domain_entropy: number;
+  entropy_suspicious: boolean;
+  spam_trap: boolean;
+  spam_trap_pattern: string | null;
+  mx_provider_class: 'enterprise' | 'consumer' | 'self-hosted' | 'forwarding' | 'unknown';
+  mx_security_gateway: string | null;
 }
 
 /** Tier 3 — Email security posture */
@@ -183,6 +196,8 @@ export interface DomainCacheEntry {
   is_free_provider: boolean;
   is_privacy_relay: boolean;
   privacy_relay_service: string | null;
+  security: SecurityResult | null;
+  heuristics: HeuristicResult | null;
   cached_at: number;
 }
 
