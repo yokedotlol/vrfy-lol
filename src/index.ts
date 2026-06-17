@@ -57,7 +57,7 @@ export default {
     const corsHeaders: Record<string, string> = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
-      'Access-Control-Allow-Headers': 'Content-Type, Accept',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept, X-Admin-Key',
     };
 
     if (method === 'OPTIONS') {
@@ -207,10 +207,12 @@ async function handlePost(
   }
 
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
+  const adminKey = request.headers.get('x-admin-key') || undefined;
   const options: ValidateOptions = {
     quick: body.quick ?? false,
     force: body.force ?? false,
     dkim: body.dkim,
+    adminKey,
   };
 
   const result = await validateEmail(body.email, env, options);
@@ -330,9 +332,11 @@ async function handleBatch(
     }
   }
 
+  const adminKey = request.headers.get('x-admin-key') || undefined;
   const options: ValidateOptions = {
     quick: body.quick ?? false,
     force: body.force ?? false,
+    adminKey,
   };
   const result = await validateBatch(body.emails, env, options);
 

@@ -40,6 +40,8 @@ export interface ValidateOptions {
   force?: boolean;
   /** Full DKIM probing */
   dkim?: 'full';
+  /** Admin key for signal visibility */
+  adminKey?: string;
 }
 
 /**
@@ -58,7 +60,7 @@ export async function validateEmail(
 
   if (!syntax.valid || !syntax.domain || !syntax.local_part) {
     // Invalid syntax — return immediately, no DNS needed
-    return buildResponse(email, syntax, null, null, false, false, false, null, false, null, null, null, startMs, false, null, null, null);
+    return buildResponse(email, syntax, null, null, false, false, false, null, false, null, null, null, startMs, false, null, null, null, undefined);
   }
 
   const domain = syntax.domain;
@@ -180,16 +182,20 @@ export async function validateEmail(
     : null;
 
   // Step 5: Extended validation (if plugin is bound)
-  let extendedScore: number | null = null;
+  let extendedResult: ExtendedResult | null = null;
   if (env.EXTENDED_VALIDATION && !options.quick) {
-    extendedScore = await callExtendedValidation(env, email, domain);
+    extendedResult = await callExtendedValidation(env, email, domain);
   }
+
+  const extendedScore = extendedResult?.score ?? null;
+  const isAdmin = !!(options.adminKey && env.ADMIN_KEY && options.adminKey === env.ADMIN_KEY);
 
   return buildResponse(
     email, syntax, mx, provider, disposable, freeProvider,
     privacyRelay, privacyRelayService, roleAccount,
     typo, typoSuggestion, subaddress, startMs, cached,
     extendedScore, security, emailHeuristics,
+    isAdmin ? extendedResult?.signals : undefined,
   );
 }
 
@@ -223,23 +229,35 @@ export async function validateBatch(
 
 // ─── Extended validation ───
 
+/** Result from the extended validation plugin */
+interface ExtendedResult {
+  score: number;
+  signals?: Record<string, boolean>;
+}
+
 /**
  * Call the optional extended validation service binding.
- * Returns an opaque score (0.0-1.0) or null on failure.
+ * Returns score and per-signal breakdown, or null on failure.
  */
 async function callExtendedValidation(
   env: Env,
   email: string,
   domain: string,
-): Promise<number | null> {
+): Promise<ExtendedResult | null> {
   if (!env.EXTENDED_VALIDATION) return null;
 
   try {
     // Check extended cache first (HMAC-keyed, 30-day TTL)
     const cacheKey = await hmacCacheKey(env.CACHE_SECRET, email);
-    const cachedScore = await env.CACHE.get(cacheKey);
-    if (cachedScore !== null) {
-      return parseFloat(cachedScore);
+    const cachedValue = await env.CACHE.get(cacheKey);
+    if (cachedValue !== null) {
+      try {
+        return JSON.parse(cachedValue) as ExtendedResult;
+      } catch {
+        // Legacy cache entry (plain score string) — parse as number
+        const score = parseFloat(cachedValue);
+        return isNaN(score) ? null : { score };
+      }
     }
 
     // Call the plugin
@@ -253,15 +271,18 @@ async function callExtendedValidation(
 
     if (!response.ok) return null;
 
-    const data = await response.json() as { score: number };
-    const score = data.score;
+    const data = await response.json() as { score: number; signals?: Record<string, boolean> };
+    const result: ExtendedResult = {
+      score: data.score,
+      signals: data.signals,
+    };
 
-    // Cache the result (30-day TTL)
-    await env.CACHE.put(cacheKey, String(score), {
+    // Cache the full result (30-day TTL)
+    await env.CACHE.put(cacheKey, JSON.stringify(result), {
       expirationTtl: EXTENDED_CACHE_TTL,
     });
 
-    return score;
+    return result;
   } catch {
     // Extended validation failure is non-fatal
     return null;
@@ -384,7 +405,7 @@ function countSignals(
   if (extendedScore !== null) {
     // The extended plugin checked N signals internally — we report
     // a fixed count since the plugin is opaque
-    total += 5; // approximate: gravatar, hibp, webfinger, pgp, composite
+    total += 6; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase
     if (extendedScore > 0.0) positive++;
     if (extendedScore > 0.25) positive++;
     if (extendedScore > 0.5) positive++;
@@ -415,6 +436,7 @@ function buildResponse(
   extendedScore: number | null,
   security: SecurityResult | null,
   heuristics: HeuristicResult | null,
+  adminSignals?: Record<string, boolean>,
 ): VrfyResponse {
   const effectiveMx: MxResult = mx ?? {
     has_mx: false,
@@ -524,6 +546,7 @@ function buildResponse(
     // enrichment and security in response
     ...(security ? { security } : {}),
     ...(heuristics ? { heuristics } : {}),
+    ...(adminSignals ? { _admin: { existence_signals: adminSignals } } : {}),
     _meta: {
       signals: signals.total,
       signals_positive: signals.positive,

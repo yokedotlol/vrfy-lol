@@ -2,6 +2,11 @@
 
 import type { PowSolution } from './pow';
 
+/** Admin-only diagnostic payload (requires X-Admin-Key header) */
+export interface AdminResult {
+  existence_signals?: Record<string, boolean>;
+}
+
 /** Top-level validation response */
 export interface VrfyResponse {
   email: string;
@@ -11,6 +16,7 @@ export interface VrfyResponse {
   enrichment?: EnrichmentResult;
   security?: SecurityResult;
   heuristics?: HeuristicResult;
+  _admin?: AdminResult;
   _meta: MetaResult;
 }
 
@@ -181,6 +187,8 @@ export interface Env {
   CACHE_SECRET: string;
   /** HMAC key for PoW challenge generation */
   POW_SECRET: string;
+  /** Optional admin key for signal visibility (set via wrangler secret) */
+  ADMIN_KEY?: string;
   /** Optional extended validation service binding (closed-source plugin) */
   EXTENDED_VALIDATION?: Fetcher;
   // Phase 2+
