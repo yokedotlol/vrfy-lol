@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: vrfy
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: vrfy
+    dir: .
+    main: ./cmd/vrfy
+    binary: vrfy
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github-native
+
+release:
+  github:
+    owner: yokedotlol
+    name: vrfy-lol
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+brews:
+  - name: vrfy
+    repository:
+      owner: yokedotlol
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: https://vrfy.lol
+    description: "Email validation — no SMTP probes, no API keys, proof-of-work anti-abuse"
+    license: MIT
+    install: |
+      bin.install "vrfy"
+    test: |
+      assert_match version.to_s, shell_output("#{bin}/vrfy --version")
