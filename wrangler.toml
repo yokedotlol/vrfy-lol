@@ -26,6 +26,10 @@ zone_id = "17c5e0dd21faa482187d027435914a45"
 pattern = "vrfy.lol"
 zone_id = "17c5e0dd21faa482187d027435914a45"
 
+[[routes]]
+pattern = "mta-sts.vrfy.lol/*"
+zone_id = "17c5e0dd21faa482187d027435914a45"
+
 # Secrets (set via `wrangler secret put`):
 #   CACHE_SECRET  — HMAC key for email-level cache keys (pseudonymized)
 #   POW_SECRET    — HMAC key for PoW challenge generation (IP-bound)
@@ -35,7 +39,7 @@ zone_id = "17c5e0dd21faa482187d027435914a45"
 #   openssl rand -hex 32 | wrangler secret put CACHE_SECRET
 #   openssl rand -hex 32 | wrangler secret put POW_SECRET
 
-# Optional: Extended validation service binding (closed-source plugin)
-# [[services]]
-# binding = "EXTENDED_VALIDATION"
-# service = "vrfy-extended"
+# Extended validation service binding (closed-source plugin)
+[[services]]
+binding = "EXTENDED_VALIDATION"
+service = "vrfy-extended"
