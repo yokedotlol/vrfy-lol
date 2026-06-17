@@ -65,18 +65,6 @@ export default {
         });
       }
 
-      // ── MTA-STS policy (served from mta-sts.vrfy.lol) ──
-
-      if (url.hostname === 'mta-sts.vrfy.lol') {
-        if (path === '/.well-known/mta-sts.txt') {
-          return new Response(
-            'version: STSv1\nmode: none\nmax_age: 86400\n',
-            { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400', ...SECURITY_HEADERS } },
-          );
-        }
-        return new Response('Not found', { status: 404, headers: SECURITY_HEADERS });
-      }
-
       // ── Static routes (no rate limit) ──
 
       if (path === '/health') {
