@@ -1,0 +1,41 @@
+name = "vrfy-lol"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# [vars]
+# PROBE_URL = "https://vrfy-probe.fly.dev"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "d0c2357c7b5a4a2fb6c434f0425e5f78"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiterDO"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RateLimiterDO"]
+
+[[routes]]
+pattern = "vrfy.lol/*"
+zone_id = "17c5e0dd21faa482187d027435914a45"
+
+[[routes]]
+pattern = "vrfy.lol"
+zone_id = "17c5e0dd21faa482187d027435914a45"
+
+# Secrets (set via `wrangler secret put`):
+#   CACHE_SECRET  — HMAC key for email-level cache keys (pseudonymized)
+#   POW_SECRET    — HMAC key for PoW challenge generation (IP-bound)
+#   FLY_AUTH_SECRET — Bearer token for Fly probe auth (Phase 2)
+#
+# Generate secrets:
+#   openssl rand -hex 32 | wrangler secret put CACHE_SECRET
+#   openssl rand -hex 32 | wrangler secret put POW_SECRET
+
+# Optional: Extended validation service binding (closed-source plugin)
+# [[services]]
+# binding = "EXTENDED_VALIDATION"
+# service = "vrfy-extended"
