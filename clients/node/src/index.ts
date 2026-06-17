@@ -155,7 +155,7 @@ export function solvePoW(challenge: string, difficulty: number): number {
   throw new Error('vrfy: exhausted nonce space');
 }
 
-function countLeadingZeroBits(hash: Buffer): number {
+export function countLeadingZeroBits(hash: Buffer): number {
   let bits = 0;
   for (const byte of hash) {
     if (byte === 0) {

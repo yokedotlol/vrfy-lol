@@ -35,3 +35,6 @@ vrfy = "vrfy.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["vrfy*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
