@@ -8,6 +8,7 @@
 //   GET  /about    — About page
 //   GET  /api/docs — API documentation
 //   GET  /privacy  — Privacy policy
+//   GET  /status   — Service status page
 //   GET  /health   — Health check
 
 import type { Env, ValidateRequest, BatchRequest } from './types';
@@ -23,7 +24,7 @@ const VERSION = '1.0.0';
 const MAX_BATCH_SIZE = 20;
 
 // SPA page paths (GET → HTML)
-const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/privacy']);
+const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/privacy', '/status']);
 
 // Security headers applied to ALL responses
 const SECURITY_HEADERS: Record<string, string> = {
@@ -384,6 +385,7 @@ function sitemap(): string {
   <url><loc>https://vrfy.lol/about</loc><lastmod>${now}</lastmod><priority>0.6</priority></url>
   <url><loc>https://vrfy.lol/api/docs</loc><lastmod>${now}</lastmod><priority>0.8</priority></url>
   <url><loc>https://vrfy.lol/privacy</loc><lastmod>${now}</lastmod><priority>0.4</priority></url>
+  <url><loc>https://vrfy.lol/status</loc><lastmod>${now}</lastmod><priority>0.5</priority></url>
 </urlset>`;
 }
 

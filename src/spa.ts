@@ -14,6 +14,7 @@ export function renderPage(path: string, nonce: string): string {
   if (path === '/about') bodyContent = aboutPage();
   else if (path === '/api/docs') bodyContent = docsPage();
   else if (path === '/privacy') bodyContent = privacyPage();
+  else if (path === '/status') bodyContent = statusPage();
   else bodyContent = landingPage();
 
   return `<!DOCTYPE html>
@@ -81,6 +82,7 @@ function pageTitle(path: string): string {
     case '/about': return 'About — vrfy.lol';
     case '/api/docs': return 'API Docs — vrfy.lol';
     case '/privacy': return 'Privacy — vrfy.lol';
+    case '/status': return 'Status — vrfy.lol';
     default: return 'vrfy.lol — Email validation, no SMTP probes.';
   }
 }
@@ -402,8 +404,77 @@ function scripts(nonce: string): string {
         if (main) document.getElementById('main').innerHTML = main.innerHTML;
         document.title = doc.title || 'vrfy.lol';
         window.scrollTo(0, 0);
+        runStatusCheck();
       });
   }
+
+  // ── Status page live check ──
+  function runStatusCheck() {
+    if (!document.getElementById('statusHero')) return;
+    var hero = document.getElementById('statusHero');
+    var indicator = hero.querySelector('.status-indicator');
+    var statusText = hero.querySelector('.status-text');
+    var meta = document.getElementById('statusMeta');
+    var checkApi = document.getElementById('checkApi');
+    var checkHealth = document.getElementById('checkHealth');
+    var checkLatency = document.getElementById('checkLatency');
+    var versionEl = document.getElementById('statusVersion');
+    var timeEl = document.getElementById('statusTime');
+
+    timeEl.textContent = new Date().toLocaleString();
+
+    var t0 = performance.now();
+    fetch('/health', { cache: 'no-store' })
+      .then(function(r) {
+        var latency = Math.round(performance.now() - t0);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json().then(function(data) {
+          // API endpoint: reachable
+          checkApi.className = 'status-check pass';
+          checkApi.querySelector('.check-status').textContent = '✓ Reachable';
+
+          // Health check: ok
+          var healthy = data.status === 'ok';
+          checkHealth.className = 'status-check ' + (healthy ? 'pass' : 'fail');
+          checkHealth.querySelector('.check-status').textContent = healthy ? '✓ OK' : '✗ ' + (data.status || 'Unknown');
+
+          // Latency
+          var latCls = latency < 300 ? 'pass' : latency < 1000 ? 'warn' : 'fail';
+          checkLatency.className = 'status-check ' + latCls;
+          checkLatency.querySelector('.check-status').textContent = latency + 'ms';
+
+          // Version
+          versionEl.textContent = data.version || '—';
+
+          // Overall
+          if (healthy && latency < 1000) {
+            indicator.className = 'status-indicator operational';
+            statusText.textContent = 'All Systems Operational';
+            meta.textContent = 'Responded in ' + latency + 'ms';
+          } else if (healthy) {
+            indicator.className = 'status-indicator degraded';
+            statusText.textContent = 'Degraded Performance';
+            meta.textContent = 'Responded in ' + latency + 'ms (slow)';
+          } else {
+            indicator.className = 'status-indicator down';
+            statusText.textContent = 'Service Issue Detected';
+            meta.textContent = 'Health check returned: ' + (data.status || 'unknown');
+          }
+        });
+      })
+      .catch(function(err) {
+        checkApi.className = 'status-check fail';
+        checkApi.querySelector('.check-status').textContent = '✗ Unreachable';
+        checkHealth.className = 'status-check fail';
+        checkHealth.querySelector('.check-status').textContent = '✗ Failed';
+        checkLatency.className = 'status-check fail';
+        checkLatency.querySelector('.check-status').textContent = '—';
+        indicator.className = 'status-indicator down';
+        statusText.textContent = 'Service Unavailable';
+        meta.textContent = err.message || 'Could not reach API';
+      });
+  }
+  runStatusCheck();
 
   // Form submission
   var form = document.getElementById('vrfyForm');
@@ -701,6 +772,115 @@ function privacyPage(): string {
 </div>`;
 }
 
+function statusPage(): string {
+  return `<div class="content-page">
+<h2>Service Status</h2>
+
+<div class="status-hero" id="statusHero">
+  <div class="status-indicator checking">
+    <span class="status-dot"></span>
+    <span class="status-text">Checking…</span>
+  </div>
+  <div class="status-meta" id="statusMeta"></div>
+</div>
+
+<div class="status-checks" id="statusChecks">
+  <div class="status-check" id="checkApi">
+    <span class="check-name">API endpoint</span>
+    <span class="check-status">—</span>
+  </div>
+  <div class="status-check" id="checkHealth">
+    <span class="check-name">Health check</span>
+    <span class="check-status">—</span>
+  </div>
+  <div class="status-check" id="checkLatency">
+    <span class="check-name">Response latency</span>
+    <span class="check-status">—</span>
+  </div>
+</div>
+
+<div class="status-info">
+  <div class="status-info-row">
+    <span class="info-label">Service</span>
+    <span class="info-value">vrfy.lol</span>
+  </div>
+  <div class="status-info-row">
+    <span class="info-label">Version</span>
+    <span class="info-value" id="statusVersion">—</span>
+  </div>
+  <div class="status-info-row">
+    <span class="info-label">Checked at</span>
+    <span class="info-value" id="statusTime">—</span>
+  </div>
+</div>
+
+<p class="status-note">Live check from your browser to the API edge. No uptime history is stored — this page tests current reachability in real time.</p>
+</div>
+
+<style>
+.status-hero {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 1.25rem 1.5rem; margin: 1.5rem 0 1rem;
+  text-align: center;
+}
+.status-indicator {
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+}
+.status-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+}
+.status-indicator.checking .status-dot { background: var(--text-muted); }
+.status-indicator.operational .status-dot { background: var(--green); box-shadow: 0 0 8px rgba(63,185,80,0.5); }
+.status-indicator.degraded .status-dot { background: var(--yellow); box-shadow: 0 0 8px rgba(210,153,34,0.5); }
+.status-indicator.down .status-dot { background: var(--red); box-shadow: 0 0 8px rgba(248,81,73,0.5); }
+.status-text {
+  font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600;
+  color: var(--text-bright);
+}
+.status-meta {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text-muted); margin-top: 0.5rem;
+}
+.status-checks {
+  display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;
+}
+.status-check {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.6rem 1rem;
+  border-left: 3px solid var(--text-muted);
+}
+.status-check.pass { border-left-color: var(--green); }
+.status-check.warn { border-left-color: var(--yellow); }
+.status-check.fail { border-left-color: var(--red); }
+.check-name {
+  font-family: var(--font-mono); font-size: 0.85rem; color: var(--text);
+}
+.check-status {
+  font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);
+}
+.status-check.pass .check-status { color: var(--green); }
+.status-check.warn .check-status { color: var(--yellow); }
+.status-check.fail .check-status { color: var(--red); }
+.status-info {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.5rem;
+}
+.status-info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.35rem 0; font-family: var(--font-mono); font-size: 0.8rem;
+}
+.status-info-row + .status-info-row { border-top: 1px solid var(--border); }
+.info-label { color: var(--text-muted); }
+.info-value { color: var(--text-bright); }
+.status-note {
+  font-size: 0.8rem; color: var(--text-muted); font-style: italic;
+  text-align: center;
+}
+</style>`;
+}
+
 /* ── Footer ────────────────────────────────────────────────────────── */
 
 function footer(): string {
@@ -709,6 +889,7 @@ function footer(): string {
     <a href="https://github.com/yokedotlol/vrfy-lol">GitHub</a>
     <a href="/api/docs">API</a>
     <a href="/about">About</a>
+    <a href="/status">Status</a>
     <a href="/privacy">Privacy</a>
   </div>
   <div class="footer-tagline">Part of the <a href="https://yoke.lol/tools">.lol tools</a></div>
