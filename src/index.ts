@@ -2,14 +2,16 @@
 // POST-only for email validation. No emails in URLs.
 //
 // Routes:
-//   POST /         — Validate an email (body: {email, pow?, force?, quick?})
-//   POST /batch    — Validate up to 20 emails
-//   GET  /         — API root (JSON) / SPA landing (HTML)
-//   GET  /about    — About page
-//   GET  /api/docs — API documentation
-//   GET  /privacy  — Privacy policy
-//   GET  /status   — Service status page
-//   GET  /health   — Health check
+//   POST /           — Validate an email (body: {email, pow?, force?, quick?})
+//   POST /batch      — Validate up to 20 emails
+//   GET  /           — API root (JSON) / SPA landing (HTML)
+//   GET  /about      — About page
+//   GET  /api/docs   — API documentation
+//   GET  /api/usage  — Admin usage stats (requires X-Admin-Key)
+//   GET  /privacy    — Privacy policy
+//   GET  /status     — Service status page
+//   GET  /usage      — Usage dashboard (admin SPA)
+//   GET  /health     — Health check
 
 import type { Env, ValidateRequest, BatchRequest } from './types';
 import { validateEmail, validateBatch, type ValidateOptions } from './validate';
@@ -24,7 +26,7 @@ const VERSION = '1.0.0';
 const MAX_BATCH_SIZE = 20;
 
 // SPA page paths (GET → HTML)
-const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/privacy', '/status']);
+const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/privacy', '/status', '/usage']);
 
 // Security headers applied to ALL responses
 const SECURITY_HEADERS: Record<string, string> = {
@@ -148,6 +150,12 @@ export default {
             ...corsHeaders,
           },
         });
+      }
+
+      // ── GET /api/usage — Admin usage stats ──
+
+      if (path === '/api/usage' && method === 'GET') {
+        return handleUsageApi(request, env, corsHeaders);
       }
 
       // ── POST / — Primary email validation ──
@@ -346,6 +354,79 @@ async function handleBatch(
   });
 }
 
+async function handleUsageApi(
+  request: Request,
+  env: Env,
+  corsHeaders: Record<string, string>,
+): Promise<Response> {
+  // Auth: require admin key if configured, otherwise allow (pre-secret setup)
+  const adminKey = request.headers.get('x-admin-key');
+  if (env.ADMIN_KEY && adminKey !== env.ADMIN_KEY) {
+    return json({ error: 'unauthorized', message: 'Valid X-Admin-Key header required' }, 401, corsHeaders);
+  }
+
+  // Read XON stats from shared KV for today + last 7 days
+  const today = new Date();
+  const history: Array<{ date: string; calls: number; hits: number; errors: number; skipped: number }> = [];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+
+    const [calls, hits, errors, skipped] = await Promise.all([
+      kvCounter(env.CACHE, `xon:calls:${dateStr}`),
+      kvCounter(env.CACHE, `xon:hits:${dateStr}`),
+      kvCounter(env.CACHE, `xon:errors:${dateStr}`),
+      kvCounter(env.CACHE, `xon:skipped:${dateStr}`),
+    ]);
+
+    history.push({ date: dateStr, calls, hits, errors, skipped });
+  }
+
+  // Read any cached rate limit headers from XON
+  const rateLimitHeaders = ['x-ratelimit-remaining', 'x-ratelimit-limit', 'retry-after', 'x-ratelimit-reset'];
+  const rateLimits: Record<string, string> = {};
+  for (const header of rateLimitHeaders) {
+    try {
+      const val = await env.CACHE.get(`xon:ratelimit:${header}`);
+      if (val !== null) rateLimits[header] = val;
+    } catch { /* best-effort */ }
+  }
+
+  const todayData = history[0] || { calls: 0, hits: 0, errors: 0, skipped: 0 };
+
+  return json({
+    xon: {
+      today: {
+        calls: todayData.calls,
+        hits: todayData.hits,
+        errors: todayData.errors,
+        skipped: todayData.skipped,
+      },
+      history,
+      rate_limits: Object.keys(rateLimits).length > 0 ? rateLimits : null,
+    },
+    signals: [
+      { name: 'gravatar', weight: 0.35, description: 'Gravatar profile lookup (~260M profiles)' },
+      { name: 'github', weight: 0.30, description: 'GitHub public commit email search' },
+      { name: 'xon', weight: 0.25, description: 'XposedOrNot breach database (free, no API key)' },
+      { name: 'webfinger', weight: 0.25, description: 'RFC 7033 Webfinger account discovery' },
+      { name: 'pgp', weight: 0.20, description: 'OpenPGP key server lookup' },
+      { name: 'keybase', weight: 0.20, description: 'Keybase identity graph (~400K users)' },
+    ],
+  }, 200, { ...corsHeaders, 'Cache-Control': 'no-cache' });
+}
+
+async function kvCounter(kv: KVNamespace, key: string): Promise<number> {
+  try {
+    const raw = await kv.get(key);
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ─── Response helpers ───
 
 function json(data: unknown, status: number, headers: Record<string, string> = {}): Response {
@@ -390,6 +471,7 @@ function sitemap(): string {
   <url><loc>https://vrfy.lol/api/docs</loc><lastmod>${now}</lastmod><priority>0.8</priority></url>
   <url><loc>https://vrfy.lol/privacy</loc><lastmod>${now}</lastmod><priority>0.4</priority></url>
   <url><loc>https://vrfy.lol/status</loc><lastmod>${now}</lastmod><priority>0.5</priority></url>
+  <url><loc>https://vrfy.lol/usage</loc><lastmod>${now}</lastmod><priority>0.3</priority></url>
 </urlset>`;
 }
 

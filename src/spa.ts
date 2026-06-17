@@ -15,6 +15,7 @@ export function renderPage(path: string, nonce: string): string {
   else if (path === '/api/docs') bodyContent = docsPage();
   else if (path === '/privacy') bodyContent = privacyPage();
   else if (path === '/status') bodyContent = statusPage();
+  else if (path === '/usage') bodyContent = usagePage();
   else bodyContent = landingPage();
 
   return `<!DOCTYPE html>
@@ -83,6 +84,7 @@ function pageTitle(path: string): string {
     case '/api/docs': return 'API Docs — vrfy.lol';
     case '/privacy': return 'Privacy — vrfy.lol';
     case '/status': return 'Status — vrfy.lol';
+    case '/usage': return 'Usage — vrfy.lol';
     default: return 'vrfy.lol — Email validation, no SMTP probes.';
   }
 }
@@ -405,6 +407,110 @@ function scripts(nonce: string): string {
         document.title = doc.title || 'vrfy.lol';
         window.scrollTo(0, 0);
         runStatusCheck();
+        initUsagePage();
+
+  // ── Usage page ──
+  function initUsagePage() {
+    var btn = document.getElementById('usageLoadBtn');
+    var input = document.getElementById('adminKeyInput');
+    if (!btn || !input) return;
+
+    // Load saved key
+    var savedKey = localStorage.getItem('vrfy-admin-key');
+    if (savedKey) { input.value = savedKey; loadUsageData(savedKey); }
+
+    btn.addEventListener('click', function() { loadUsageData(input.value); });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); loadUsageData(input.value); }
+    });
+  }
+
+  function loadUsageData(key) {
+    var headers = { 'Accept': 'application/json' };
+    if (key) { headers['X-Admin-Key'] = key; localStorage.setItem('vrfy-admin-key', key); }
+
+    fetch('/api/usage', { headers: headers, cache: 'no-store' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 ? ' — invalid admin key' : ''));
+        return r.json();
+      })
+      .then(function(data) {
+        document.getElementById('usageContent').style.display = '';
+        document.getElementById('usageError').style.display = 'none';
+        renderUsage(data);
+      })
+      .catch(function(err) {
+        document.getElementById('usageContent').style.display = 'none';
+        document.getElementById('usageError').style.display = '';
+        document.getElementById('usageErrorMsg').textContent = err.message || 'Failed to load';
+      });
+  }
+
+  function renderUsage(data) {
+    var xon = data.xon || {};
+    var today = xon.today || {};
+    var calls = today.calls || 0;
+    var hits = today.hits || 0;
+    var errors = today.errors || 0;
+    var skipped = today.skipped || 0;
+
+    setCheck('xonCalls', String(calls), calls > 0 ? 'pass' : '');
+    setCheck('xonHits', String(hits), hits > 0 ? 'pass' : '');
+    setCheck('xonErrors', String(errors), errors > 0 ? 'fail' : 'pass');
+    setCheck('xonSkipped', String(skipped), skipped > 0 ? 'warn' : 'pass');
+    var rate = calls > 0 ? ((hits / calls) * 100).toFixed(1) + '%' : '—';
+    setCheck('xonHitRate', rate, calls > 0 ? 'pass' : '');
+
+    // History table
+    var rows = document.getElementById('historyRows');
+    if (rows && xon.history) {
+      rows.innerHTML = '';
+      xon.history.forEach(function(day) {
+        var row = document.createElement('div');
+        row.className = 'status-info-row';
+        row.innerHTML = '<span style="flex:1;">' + day.date + '</span>' +
+          '<span style="flex:0.6;text-align:right;">' + (day.calls || 0) + '</span>' +
+          '<span style="flex:0.6;text-align:right;">' + (day.hits || 0) + '</span>' +
+          '<span style="flex:0.6;text-align:right;">' + (day.errors || 0) + '</span>' +
+          '<span style="flex:0.6;text-align:right;">' + (day.skipped || 0) + '</span>';
+        rows.appendChild(row);
+      });
+    }
+
+    // Rate limits
+    var rlInfo = document.getElementById('rateLimitText');
+    if (rlInfo) {
+      if (xon.rate_limits && Object.keys(xon.rate_limits).length > 0) {
+        var parts = [];
+        for (var k in xon.rate_limits) { parts.push(k + ': ' + xon.rate_limits[k]); }
+        rlInfo.textContent = parts.join(' · ');
+      } else {
+        rlInfo.textContent = 'No rate limit headers returned by upstream (XON does not currently send them)';
+      }
+    }
+
+    // Signals list
+    var list = document.getElementById('signalsList');
+    if (list && data.signals) {
+      list.innerHTML = '';
+      data.signals.forEach(function(sig) {
+        var el = document.createElement('div');
+        el.className = 'status-check pass';
+        el.innerHTML = '<span class="check-name">' + sig.name + ' <span style="color:var(--text-muted);font-weight:400;">— ' +
+          sig.description + '</span></span><span class="check-status">w=' + sig.weight + '</span>';
+        list.appendChild(el);
+      });
+    }
+  }
+
+  function setCheck(id, text, cls) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('.check-status').textContent = text;
+    if (cls) el.className = 'status-check ' + cls;
+  }
+
+  initUsagePage();
       });
   }
 
@@ -881,6 +987,102 @@ function statusPage(): string {
 </style>`;
 }
 
+/* ── Usage (admin) ──────────────────────────────────────────────────── */
+
+function usagePage(): string {
+  return `<div class="content-page">
+<h2>Usage Dashboard</h2>
+
+<div id="usageAuth" style="margin: 1.5rem 0;">
+  <div class="status-info" style="margin-bottom: 1rem;">
+    <div class="status-info-row">
+      <span class="info-label">Admin Key</span>
+      <span class="info-value">
+        <input type="password" id="adminKeyInput" placeholder="X-Admin-Key" autocomplete="off"
+          style="background: var(--bg); border: 1px solid var(--border); color: var(--text-bright);
+                 font-family: var(--font-mono); font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; width: 240px;">
+        <button id="usageLoadBtn" style="background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent);
+                font-family: var(--font-mono); font-size: 0.8rem; padding: 4px 12px; border-radius: 4px; cursor: pointer; margin-left: 4px;">Load</button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<div id="usageContent" style="display: none;">
+
+<h3 style="font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-bright); margin: 1.5rem 0 0.75rem;">
+  XON Breach Intelligence
+</h3>
+
+<div class="status-checks" id="xonToday">
+  <div class="status-check" id="xonCalls">
+    <span class="check-name">API calls today</span>
+    <span class="check-status">—</span>
+  </div>
+  <div class="status-check" id="xonHits">
+    <span class="check-name">Breach hits</span>
+    <span class="check-status">—</span>
+  </div>
+  <div class="status-check" id="xonErrors">
+    <span class="check-name">Errors</span>
+    <span class="check-status">—</span>
+  </div>
+  <div class="status-check" id="xonSkipped">
+    <span class="check-name">Rate-limited / skipped</span>
+    <span class="check-status">—</span>
+  </div>
+  <div class="status-check" id="xonHitRate">
+    <span class="check-name">Hit rate</span>
+    <span class="check-status">—</span>
+  </div>
+</div>
+
+<h3 style="font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-bright); margin: 1.5rem 0 0.75rem;">
+  7-Day History
+</h3>
+
+<div class="status-info" id="xonHistory">
+  <div class="status-info-row" style="font-weight: 600; color: var(--accent);">
+    <span style="flex: 1;">Date</span>
+    <span style="flex: 0.6; text-align: right;">Calls</span>
+    <span style="flex: 0.6; text-align: right;">Hits</span>
+    <span style="flex: 0.6; text-align: right;">Errors</span>
+    <span style="flex: 0.6; text-align: right;">Skipped</span>
+  </div>
+  <div id="historyRows"></div>
+</div>
+
+<h3 style="font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-bright); margin: 1.5rem 0 0.75rem;">
+  Rate Limit Status
+</h3>
+
+<div class="status-info" id="rateLimitInfo">
+  <div class="status-info-row">
+    <span class="info-label" id="rateLimitText">Loading…</span>
+  </div>
+</div>
+
+<h3 style="font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-bright); margin: 1.5rem 0 0.75rem;">
+  Extended Signals
+</h3>
+
+<div class="status-checks" id="signalsList"></div>
+
+</div>
+
+<div id="usageError" style="display: none; margin: 1.5rem 0;">
+  <div class="status-check fail">
+    <span class="check-name" id="usageErrorMsg">Failed to load usage data</span>
+    <span class="check-status">✗</span>
+  </div>
+</div>
+
+<p class="status-note" style="margin-top: 1.5rem;">
+  Stats are tracked via shared KV. Counters use UTC dates with 48h auto-expiry. XON self-limits at 90 calls/day per worker IP.
+</p>
+</div>`;
+}
+
 /* ── Footer ────────────────────────────────────────────────────────── */
 
 function footer(): string {
@@ -890,6 +1092,7 @@ function footer(): string {
     <a href="/api/docs">API</a>
     <a href="/about">About</a>
     <a href="/status">Status</a>
+    <a href="/usage">Usage</a>
     <a href="/privacy">Privacy</a>
   </div>
   <div class="footer-tagline">Part of the <a href="https://yoke.lol/tools">.lol tools</a></div>
