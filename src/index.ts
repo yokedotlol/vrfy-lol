@@ -27,7 +27,7 @@ const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/privacy']);
 
 // Security headers applied to ALL responses
 const SECURITY_HEADERS: Record<string, string> = {
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
