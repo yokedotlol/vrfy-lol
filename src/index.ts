@@ -40,6 +40,19 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
 
+    // ── HTTP → HTTPS redirect (required for HSTS preload eligibility) ──
+    const cfVisitor = request.headers.get('CF-Visitor');
+    if (cfVisitor) {
+      try {
+        const { scheme } = JSON.parse(cfVisitor) as { scheme: string };
+        if (scheme === 'http') {
+          const httpsUrl = new URL(request.url);
+          httpsUrl.protocol = 'https:';
+          return Response.redirect(httpsUrl.toString(), 301);
+        }
+      } catch { /* malformed header, continue */ }
+    }
+
     const corsHeaders: Record<string, string> = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
