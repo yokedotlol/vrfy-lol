@@ -33,6 +33,7 @@ import {
 import {
   checkDnsServices, detectNsProvider, detectSubdomain, checkDomainAge, probeDkimSelectors,
 } from './validators/dns-services';
+import { fetchDomainSignals } from './services/domain-intel';
 
 const VERSION = '1.0.0';
 const DOMAIN_CACHE_TTL = 604800;   // 7 days in seconds
@@ -138,6 +139,7 @@ export async function validateEmail(
   let privacyRelayService: string | null;
   let security: SecurityResult | null = null;
   let heuristics: HeuristicResult | null = null;
+  let nsProvider: string | null = null;
 
   if (domainCache) {
     mx = domainCache.mx;
@@ -163,53 +165,102 @@ export async function validateEmail(
       disposable = false;
     }
 
-    // MX lookup (async) + DNS security checks (async, parallel)
-    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult, tlsRptResult, dnssecResult, srvResult, nsResult, domainAgeResult, dkimResult] = options.quick
-      ? [await checkMx(domain), null, null, null, null, null, null, null, null, null, null]
-      : await Promise.all([
-          checkMx(domain),
+    // MX lookup + DNS security checks — try yoke service binding first for
+    // email auth signals, fall back to inline checks.
+    //
+    // Architecture: yoke.lol is the canonical domain intelligence engine.
+    // Via CF service binding, vrfy gets yoke's richer analysis (more DKIM
+    // selectors, cached results from prior yoke.lol scans) at zero network
+    // cost. SRV services, domain age, DANE/TLSA, and NS provider remain
+    // inline (email-specific, not in yoke's scope).
+
+    if (options.quick) {
+      // Quick mode: MX only, no security checks
+      mx = await checkMx(domain);
+      provider = mx.has_mx ? detectProvider(mx.mx_records.map(r => r.host)) : null;
+
+      await options.onProgress?.({
+        stage: 'dns', status: 'complete',
+        detail: mx.has_mx ? `${mx.mx_records.length} MX records` : mx.has_a_fallback ? 'A fallback' : 'no MX',
+        elapsed_ms: Date.now() - startMs,
+      });
+    } else {
+      // Try yoke for email auth + DNSSEC (parallel with MX + vrfy-only checks)
+      const [mxResult, yokeSignals, srvResult, nsResult_, domainAgeResult] = await Promise.all([
+        checkMx(domain),
+        fetchDomainSignals(domain, env),
+        checkDnsServices(domain),
+        detectNsProvider(domain),
+        checkDomainAge(domain),
+      ]);
+      // Hoist nsResult for heuristics (used after this block)
+      nsProvider = nsResult_?.provider ?? null;
+
+      mx = mxResult;
+
+      // Provider detection from MX
+      provider = mx.has_mx ? detectProvider(mx.mx_records.map(r => r.host)) : null;
+
+      await options.onProgress?.({
+        stage: 'dns', status: 'complete',
+        detail: mx.has_mx ? `${mx.mx_records.length} MX records` : mx.has_a_fallback ? 'A fallback' : 'no MX',
+        elapsed_ms: Date.now() - startMs,
+      });
+
+      // Reconcile provider.is_free with the free-providers list.
+      if (provider && freeProvider && !provider.is_free) {
+        provider = { ...provider, is_free: true };
+      }
+
+      if (yokeSignals) {
+        // ── Yoke path: use service binding results ──
+        // DANE/TLSA still needs MX hosts (email-specific, not in yoke)
+        const daneTlsaResult = mx.has_mx
+          ? await checkDaneTlsa(mx.mx_records)
+          : { found: false };
+
+        security = buildSecurityResult(
+          yokeSignals.dmarc, yokeSignals.spf, yokeSignals.bimi,
+          yokeSignals.mtaSts, yokeSignals.tlsRpt, daneTlsaResult,
+          yokeSignals.dnssec,
+        );
+
+        // Use yoke's DKIM selectors (richer than vrfy's static list)
+        if (yokeSignals.dkimSelectors.length > 0) {
+          security.dkim = true;
+          security.dkim_selectors = yokeSignals.dkimSelectors;
+        }
+      } else {
+        // ── Fallback: inline DNS checks (yoke unavailable) ──
+        const [dmarcResult, spfResult, bimiResult, mtaStsResult, tlsRptResult, dnssecResult, dkimResult] = await Promise.all([
           checkDmarc(domain),
           checkSpf(domain),
           checkBimi(domain),
           checkMtaSts(domain),
           checkTlsRpt(domain),
           checkDnssec(domain),
-          checkDnsServices(domain),
-          detectNsProvider(domain),
-          checkDomainAge(domain),
           probeDkimSelectors(domain),
         ]);
 
-    mx = mxResult;
+        const daneTlsaResult = mx.has_mx
+          ? await checkDaneTlsa(mx.mx_records)
+          : { found: false };
 
-    // Provider detection from MX
-    provider = mx.has_mx ? detectProvider(mx.mx_records.map(r => r.host)) : null;
+        security = buildSecurityResult(
+          dmarcResult, spfResult, bimiResult, mtaStsResult,
+          tlsRptResult, daneTlsaResult, dnssecResult,
+        );
 
-    await options.onProgress?.({
-      stage: 'dns', status: 'complete',
-      detail: mx.has_mx ? `${mx.mx_records.length} MX records` : mx.has_a_fallback ? 'A fallback' : 'no MX',
-      elapsed_ms: Date.now() - startMs,
-    });
+        // Attach DKIM selector probing results (inline)
+        if (dkimResult && dkimResult.total_found > 0) {
+          security.dkim_services = {
+            found: dkimResult.found,
+            total_found: dkimResult.total_found,
+          };
+        }
+      }
 
-    // Reconcile provider.is_free with the free-providers list.
-    // MX-based detection can't distinguish Gmail from Google Workspace
-    // (same MX hosts), so the domain-level free-provider check wins.
-    if (provider && freeProvider && !provider.is_free) {
-      provider = { ...provider, is_free: true };
-    }
-
-    // DANE TLSA needs MX hosts, so run after MX resolves
-    const daneTlsaResult = (!options.quick && mx.has_mx)
-      ? await checkDaneTlsa(mx.mx_records)
-      : { found: false };
-
-    // Build security result if we ran the checks
-    if (dmarcResult && spfResult && bimiResult && mtaStsResult && tlsRptResult && dnssecResult) {
-      security = buildSecurityResult(
-        dmarcResult, spfResult, bimiResult, mtaStsResult,
-        tlsRptResult, daneTlsaResult, dnssecResult,
-      );
-      // Attach SRV services
+      // Attach SRV services (always from vrfy — email-specific)
       if (srvResult) {
         security.services = {
           submission: srvResult.has_submission,
@@ -219,19 +270,12 @@ export async function validateEmail(
           total_found: srvResult.services_found,
         };
       }
-      // Attach domain age
+      // Attach domain age (always from vrfy — RDAP)
       if (domainAgeResult) {
         security.domain_age = {
           registered: domainAgeResult.registered,
           age_days: domainAgeResult.age_days,
           is_new: domainAgeResult.is_new,
-        };
-      }
-      // Attach DKIM selector probing results
-      if (dkimResult && dkimResult.total_found > 0) {
-        security.dkim_services = {
-          found: dkimResult.found,
-          total_found: dkimResult.total_found,
         };
       }
     }
@@ -254,7 +298,7 @@ export async function validateEmail(
       spam_trap_pattern: null,
       mx_provider_class: selfHosted ? 'self-hosted' : mxFp.mx_provider_class,
       mx_security_gateway: mxFp.mx_security_gateway,
-      ns_provider: nsResult?.provider ?? null,
+      ns_provider: nsProvider,
       is_subdomain: subdomainInfo.is_subdomain,
       parent_domain: subdomainInfo.parent_domain,
       subdomain_depth: subdomainInfo.depth,

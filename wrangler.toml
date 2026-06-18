@@ -39,3 +39,8 @@ zone_id = "17c5e0dd21faa482187d027435914a45"
 [[services]]
 binding = "EXTENDED_VALIDATION"
 service = "vrfy-extended"
+
+# Yoke domain intelligence service binding (.lol family)
+[[services]]
+binding = "YOKE"
+service = "yoke"

@@ -237,6 +237,10 @@ export interface Env {
   ADMIN_KEY?: string;
   /** Optional extended validation service binding (closed-source plugin) */
   EXTENDED_VALIDATION?: Fetcher;
+  /** Yoke domain intelligence service binding (.lol family) */
+  YOKE?: Fetcher;
+  /** Shared key for .lol family service bindings */
+  SERVICE_KEY?: string;
   // Phase 2+
   // FLY_AUTH_SECRET: string;
   // PROBE_URL: string;
