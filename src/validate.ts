@@ -211,10 +211,16 @@ export async function validateEmail(
       }
     : null;
 
-  // Assemble typo suggestion with full email
-  const typoSuggestion = typo.has_typo && typo.suggested_domain
-    ? `${localPart}@${typo.suggested_domain}`
-    : null;
+  // Assemble typo suggestion — verify suggested domain has MX before presenting
+  let typoSuggestion: string | null = null;
+  if (typo.has_typo && typo.suggested_domain) {
+    const suggestedMx = await getDomainCache(env, typo.suggested_domain)
+      ?? { mx: await checkMx(typo.suggested_domain) };
+    if (suggestedMx.mx.has_mx || suggestedMx.mx.has_a_fallback) {
+      typoSuggestion = `${localPart}@${typo.suggested_domain}`;
+    }
+    // If suggested domain can't receive mail, suppress the suggestion
+  }
 
   // Step 5: Extended validation (if plugin is bound)
   let extendedResult: ExtendedResult | null = null;

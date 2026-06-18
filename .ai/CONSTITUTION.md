@@ -13,7 +13,8 @@ Free, open-source email address validation API at [vrfy.lol](https://vrfy.lol). 
 | Layer | Technology | Location |
 |-------|-----------|----------|
 | Worker | Cloudflare Workers (TypeScript, zero-framework) | `src/` |
-| Probe | Go HTTP service on Fly.io (DNSBL queries) | `vrfy-probe/` |
+
+> **Phase 2:** A Go probe service on Fly.io (`vrfy-probe/`) is planned for DNSBL queries that require direct DNS resolution.
 
 ### Storage
 - **KV `CACHE`** — domain-level result cache (1hr TTL). Cache keys are domains only, never email addresses.

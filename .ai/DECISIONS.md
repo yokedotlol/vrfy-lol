@@ -86,3 +86,27 @@ vrfy.lol registered. Email validation API, part of the .lol family. No SMTP prob
 **What changed:** Soft launch first, Show HN later.
 **Why:** Lower risk. Let people kick the tires, fix what breaks, then announce.
 **Directive:** No big-bang launch.
+
+---
+
+### 2026-06-17 — Rate limit relaxed to 10/hour + 50/day
+
+**What changed:** Rate limit updated from 10/min to 10 requests/hour + 50 requests/day per IP.
+**Why:** 10/min was the initial conservative target. Actual implementation uses hourly + daily sliding windows for smoother ergonomics. Batch (20 emails) still counts as 1 request. Cache hits exempt.
+**Directive:** 10/hour + 50/day per IP. INVARIANTS.md updated to match.
+
+---
+
+### 2026-06-17 — Contact email uses hello@yoke.lol
+
+**What changed:** All contact references point to `hello@yoke.lol` instead of `hello@vrfy.lol`.
+**Why:** vrfy.lol email routing via CF was planned but never configured. yoke.lol already has working email via Resend → Gmail. Using the parent project's email is simpler than maintaining separate routing per tool. security.txt already used `hello@yoke.lol`.
+**Directive:** `hello@yoke.lol` is the contact email for all .lol family tools. Revisit if a tool needs its own inbox.
+
+---
+
+### 2026-06-17 — vrfy-probe deferred to Phase 2
+
+**What changed:** Removed vrfy-probe from current architecture description. DNSBL queries remain Phase 2 scope.
+**Why:** Phase 1 is DNS-only via DoH from the Worker. The Fly.io probe service was specced for DNSBL lookups which require direct DNS (not DoH). No DNSBL signals are implemented yet.
+**Directive:** Constitution architecture table reflects current state. Probe service is Phase 2 work.

@@ -240,6 +240,38 @@ body {
 }
 
 /* Raw JSON toggle */
+
+/* Security & Heuristics sections */
+.section-header {
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
+  color: var(--text-bright); text-transform: uppercase; letter-spacing: 0.05em;
+  margin: 1rem 0 0.5rem;
+}
+.detail-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem; margin-bottom: 1rem;
+}
+.detail-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.5rem 0.6rem;
+  font-family: var(--font-mono); font-size: 0.75rem;
+}
+.detail-card .detail-label { color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.detail-card .detail-value { color: var(--text-bright); margin-top: 0.15rem; }
+.detail-card.detail-good { border-left: 3px solid var(--green); }
+.detail-card.detail-bad { border-left: 3px solid var(--red); }
+.detail-card.detail-warn { border-left: 3px solid var(--yellow); }
+.detail-card.detail-info { border-left: 3px solid var(--accent); }
+.grade-badge {
+  display: inline-block; font-family: var(--font-mono); font-weight: 700;
+  font-size: 1.1rem; padding: 0.15rem 0.5rem; border-radius: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.grade-A, .grade-Ap { color: var(--green); border-color: var(--green); }
+.grade-B { color: #5dade2; border-color: #5dade2; }
+.grade-C { color: var(--yellow); border-color: var(--yellow); }
+.grade-D, .grade-F { color: var(--red); border-color: var(--red); }
+
 .raw-toggle {
   font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
   background: none; border: 1px solid var(--border); border-radius: 4px;
@@ -651,6 +683,36 @@ function scripts(nonce: string): string {
       html += '</div></div>';
     }
 
+    // Security posture (Tier 3 — only present in full mode, not quick)
+    if (d.security) {
+      var sec = d.security;
+      var gradeClass = 'grade-' + (sec.grade === 'A+' ? 'Ap' : sec.grade);
+      html += '<div class="section-header">🛡 Email Security</div>';
+      html += '<div style="margin-bottom:0.5rem"><span class="grade-badge ' + gradeClass + '">' + escHtml(sec.grade) + '</span></div>';
+      html += '<div class="detail-grid">';
+      html += detailCard('SPF', sec.spf ? 'Present' : 'Missing', sec.spf ? 'good' : 'bad');
+      html += detailCard('DMARC', sec.dmarc.found ? (sec.dmarc.policy || 'Present') : 'Missing', sec.dmarc.found ? (sec.dmarc.policy === 'reject' ? 'good' : 'warn') : 'bad');
+      html += detailCard('BIMI', sec.bimi ? 'Present' : 'None', sec.bimi ? 'good' : 'info');
+      html += detailCard('MTA-STS', sec.mta_sts ? 'Present' : 'None', sec.mta_sts ? 'good' : 'info');
+      html += detailCard('TLS-RPT', sec.tls_rpt ? 'Present' : 'None', sec.tls_rpt ? 'good' : 'info');
+      html += '</div>';
+    }
+
+    // Heuristics (Phase 1 — local computation signals)
+    if (d.heuristics) {
+      var h = d.heuristics;
+      html += '<div class="section-header">🔍 Heuristics</div>';
+      html += '<div class="detail-grid">';
+      html += detailCard('TLD', escHtml(h.tld), h.risky_tld ? 'bad' : 'good');
+      if (h.risky_tld) html += detailCard('Risky TLD', 'Yes', 'bad');
+      html += detailCard('MX Class', escHtml(h.mx_provider_class), h.mx_provider_class === 'unknown' ? 'warn' : 'info');
+      if (h.mx_security_gateway) html += detailCard('Security Gateway', escHtml(h.mx_security_gateway), 'info');
+      html += detailCard('Domain Entropy', h.domain_entropy.toFixed(2), h.entropy_suspicious ? 'bad' : 'good');
+      if (h.entropy_suspicious) html += detailCard('Suspicious Entropy', 'Yes', 'bad');
+      if (h.spam_trap) html += detailCard('Spam Trap', escHtml(h.spam_trap_pattern || 'Detected'), 'bad');
+      html += '</div>';
+    }
+
     // Raw JSON
     html += '<button class="raw-toggle" id="rawToggle">{ } Raw JSON</button>';
     html += '<pre class="raw-json" id="rawJson">' + escHtml(JSON.stringify(d, null, 2)) + '</pre>';
@@ -672,6 +734,13 @@ function scripts(nonce: string): string {
       + '<span class="signal-icon">' + icon + '</span>'
       + '<span class="signal-label">' + escHtml(label) + '</span>'
       + '<span class="signal-value">' + escHtml(value) + '</span>'
+      + '</div>';
+  }
+
+  function detailCard(label, value, cls) {
+    return '<div class="detail-card detail-' + cls + '">'
+      + '<div class="detail-label">' + escHtml(label) + '</div>'
+      + '<div class="detail-value">' + value + '</div>'
       + '</div>';
   }
 
