@@ -206,8 +206,22 @@ export interface DomainAgeResult {
   is_young: boolean;
 }
 
-const RDAP_BOOTSTRAP = 'https://rdap.org/domain/';
-const RDAP_TIMEOUT = 6000;
+// Direct RDAP server map for common TLDs (skip rdap.org redirect)
+const RDAP_SERVERS: Record<string, string> = {
+  com: 'https://rdap.verisign.com/com/v1/domain/',
+  net: 'https://rdap.verisign.com/net/v1/domain/',
+  org: 'https://rdap.org/domain/',
+  io: 'https://rdap.nic.io/domain/',
+  dev: 'https://rdap.nic.google/domain/',
+  app: 'https://rdap.nic.google/domain/',
+  lol: 'https://rdap.nic.google/domain/',
+  co: 'https://rdap.nic.co/domain/',
+  me: 'https://rdap.nic.me/domain/',
+  cc: 'https://rdap.verisign.com/cc/v1/domain/',
+  tv: 'https://rdap.verisign.com/tv/v1/domain/',
+};
+const RDAP_FALLBACK = 'https://rdap.org/domain/';
+const RDAP_TIMEOUT = 8000;
 
 export async function checkDomainAge(domain: string): Promise<DomainAgeResult> {
   const empty: DomainAgeResult = { registered: null, age_days: null, is_new: false, is_young: false };
@@ -221,7 +235,9 @@ export async function checkDomainAge(domain: string): Promise<DomainAgeResult> {
     const timeout = setTimeout(() => controller.abort(), RDAP_TIMEOUT);
 
     try {
-      const resp = await fetch(`${RDAP_BOOTSTRAP}${queryDomain}`, {
+      const tld = queryDomain.split('.').pop()?.toLowerCase() ?? '';
+      const rdapBase = RDAP_SERVERS[tld] ?? RDAP_FALLBACK;
+      const resp = await fetch(`${rdapBase}${queryDomain}`, {
         headers: { 'Accept': 'application/rdap+json' },
         signal: controller.signal,
       });
