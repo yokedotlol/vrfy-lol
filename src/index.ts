@@ -26,7 +26,7 @@ const VERSION = '1.0.0';
 const MAX_BATCH_SIZE = 20;
 
 // SPA page paths (GET → HTML)
-const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/privacy', '/status', '/usage']);
+const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/cli', '/pow', '/privacy', '/status', '/usage']);
 
 // Security headers applied to ALL responses
 const SECURITY_HEADERS: Record<string, string> = {

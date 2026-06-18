@@ -16,6 +16,8 @@ export function renderPage(path: string, nonce: string): string {
   else if (path === '/privacy') bodyContent = privacyPage();
   else if (path === '/status') bodyContent = statusPage();
   else if (path === '/usage') bodyContent = usagePage();
+  else if (path === '/cli') bodyContent = cliPage();
+  else if (path === '/pow') bodyContent = powPage();
   else bodyContent = landingPage();
 
   return `<!DOCTYPE html>
@@ -65,6 +67,7 @@ ${styles()}
       <span class="cm">vrfy</span>
       <span class="dm">&nbsp;▸&nbsp;</span>
       <input class="di" id="emailInput" type="email" placeholder="user@example.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="email" aria-label="Email to validate">
+      <button type="submit" class="submit-btn" aria-label="Validate">→</button>
     </form>
     <span class="cur" aria-hidden="true"></span>
   </div>
@@ -85,6 +88,8 @@ function pageTitle(path: string): string {
     case '/privacy': return 'Privacy — vrfy.lol';
     case '/status': return 'Status — vrfy.lol';
     case '/usage': return 'Usage — vrfy.lol';
+    case '/cli': return 'CLI — vrfy.lol';
+    case '/pow': return 'Proof of Work — vrfy.lol';
     default: return 'vrfy.lol — Email validation, no SMTP probes.';
   }
 }
@@ -159,6 +164,12 @@ body {
 }
 .di::placeholder { color: var(--text-muted); }
 .cur { display: none; }
+.submit-btn {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;
+  padding: 0 0.25rem 0 0.5rem; line-height: 1; transition: color .15s;
+}
+.submit-btn:hover { color: var(--text-bright); }
 
 /* Result area */
 #result { margin-top: 0; }
@@ -443,6 +454,7 @@ function scripts(nonce: string): string {
 
   // ── Usage page ──
   function initUsagePage() {
+    if (!document.getElementById('usageContent')) return;
     loadUsageData();
   }
 
@@ -526,10 +538,6 @@ function scripts(nonce: string): string {
     if (!el) return;
     el.querySelector('.check-status').textContent = text;
     if (cls) el.className = 'status-check ' + cls;
-  }
-
-  initUsagePage();
-      });
   }
 
   // ── Status page live check ──
@@ -1141,6 +1149,233 @@ function usagePage(): string {
 </div>`;
 }
 
+/* ── Proof of Work ─────────────────────────────────────────────────── */
+
+function powPage(): string {
+  return `<div class="content-page">
+<h2>Proof of Work</h2>
+<p>vrfy.lol uses proof-of-work instead of API keys for abuse prevention. When you hit the free tier limit, solve a SHA-256 challenge and include the solution in your request. No accounts. No signup. No tokens.</p>
+
+<h3>How it works</h3>
+<ol>
+<li>Make a request to <code>POST /</code> or <code>POST /batch</code> as normal.</li>
+<li>If you exceed the free tier (10/hour or 50/day per IP), you get a <code>429</code> response with a <code>pow</code> challenge object.</li>
+<li>Find a nonce where <code>SHA-256(challenge + ":" + nonce)</code> has N leading zero bits.</li>
+<li>Resubmit your request with the <code>pow</code> field containing the challenge and nonce.</li>
+<li>Server verifies in microseconds. Request proceeds with no rate limit.</li>
+</ol>
+
+<h3>The challenge object</h3>
+<p>When rate-limited, the response body includes:</p>
+<pre>{
+  "error": "rate_limited",
+  "pow": {
+    "algorithm": "sha256",
+    "challenge": "a9f3...hex string...",
+    "difficulty": 20,
+    "expires": 1719403500
+  }
+}</pre>
+
+<table>
+<tr><th>Field</th><th>Description</th></tr>
+<tr><td><code>algorithm</code></td><td>Always <code>sha256</code></td></tr>
+<tr><td><code>challenge</code></td><td>Hex-encoded HMAC — unique to your IP + 5-minute window</td></tr>
+<tr><td><code>difficulty</code></td><td>Number of leading zero bits required (default 20 for single, higher for batch)</td></tr>
+<tr><td><code>expires</code></td><td>Unix timestamp — challenge is valid until this time</td></tr>
+</table>
+
+<h3>Submitting a solution</h3>
+<p>Include the <code>pow</code> object in your request body alongside <code>email</code>:</p>
+<pre>{
+  "email": "user@example.com",
+  "pow": {
+    "challenge": "a9f3...the challenge you received...",
+    "nonce": "your solution nonce"
+  }
+}</pre>
+
+<h3>Solving the challenge</h3>
+<p>Find a <code>nonce</code> string where <code>SHA-256(challenge + ":" + nonce)</code> starts with <code>difficulty</code> leading zero bits. This is the Hashcash algorithm — brute-force incrementing a counter until the hash matches.</p>
+
+<p>With difficulty 20, expect ~1 million iterations (~2–8 seconds on modern hardware). Each extra bit doubles the work.</p>
+
+<h4>JavaScript (Web Crypto)</h4>
+<pre>async function solvePow(challenge, difficulty) {
+  const encoder = new TextEncoder();
+  let nonce = 0;
+  while (true) {
+    const input = challenge + ':' + nonce;
+    const hash = new Uint8Array(
+      await crypto.subtle.digest('SHA-256', encoder.encode(input))
+    );
+    if (countLeadingZeroBits(hash) >= difficulty) {
+      return String(nonce);
+    }
+    nonce++;
+  }
+}
+
+function countLeadingZeroBits(hash) {
+  let bits = 0;
+  for (const byte of hash) {
+    if (byte === 0) { bits += 8; continue; }
+    bits += Math.clz32(byte) - 24;
+    break;
+  }
+  return bits;
+}</pre>
+
+<h4>Bash (openssl)</h4>
+<pre>solve_pow() {
+  local challenge="$1" difficulty="$2" nonce=0
+  local target=$((difficulty / 4))  # hex chars
+  local zeros=$(printf '%0*d' "$target" 0)
+  while true; do
+    hash=$(printf '%s:%d' "$challenge" "$nonce" \\
+      | openssl dgst -sha256 -binary | xxd -p -c 64)
+    if [ "\${hash:0:$target}" = "$zeros" ]; then
+      echo "$nonce"; return
+    fi
+    nonce=$((nonce + 1))
+  done
+}</pre>
+
+<h3>Batch difficulty scaling</h3>
+<p>For <code>POST /batch</code>, difficulty scales with batch size:</p>
+<pre>difficulty = 20 + floor(log2(batch_size))</pre>
+<p>2 emails = 21 bits. 10 emails = 23 bits. 20 emails = 24 bits. This keeps the cost proportional to the work the server does.</p>
+
+<h3>Design notes</h3>
+<ul>
+<li><strong>Stateless.</strong> Challenges are deterministic — derived from your IP + a 5-minute time bucket. The server never stores them.</li>
+<li><strong>Clock-edge tolerance.</strong> The server accepts solutions for the current AND previous time bucket, so challenges don't expire at the boundary.</li>
+<li><strong>Nonce replay protection.</strong> Each nonce can only be used once within its challenge window.</li>
+<li><strong>No accounts.</strong> PoW replaces API keys entirely. Compute is the credential.</li>
+</ul>
+
+<h3>Rate limits</h3>
+<table>
+<tr><th>Tier</th><th>Limit</th></tr>
+<tr><td>Free</td><td>10 requests/hour + 50/day per IP</td></tr>
+<tr><td>With PoW</td><td>Unlimited</td></tr>
+</table>
+<p>Cached responses don't count against the free tier.</p>
+
+<h3>Client libraries</h3>
+<p>All official clients solve PoW transparently — you never need to implement this yourself unless you're calling the API directly.</p>
+<ul>
+<li><a href="/cli">CLI & Libraries</a> — Go, Node, Python, and bash clients with built-in PoW</li>
+<li><a href="/api/docs">API Reference</a></li>
+</ul>
+</div>`;
+}
+
+/* ── CLI & Libraries ───────────────────────────────────────────────── */
+
+function cliPage(): string {
+  return `<div class="content-page">
+<h2>CLI &amp; Libraries</h2>
+<p>Official clients for vrfy.lol. All handle proof-of-work transparently — just call the function and results come back.</p>
+
+<h3>Quick start (curl)</h3>
+<p>No install required:</p>
+<pre>curl -s -X POST https://vrfy.lol/ \\
+  -H "Content-Type: application/json" \\
+  -d '{"email":"user@example.com"}' | jq .action</pre>
+
+<h3>Shell script</h3>
+<p>Zero dependencies beyond <code>curl</code> + <code>openssl</code>. Handles PoW, batch files, colored output, and pipe-friendly exit codes.</p>
+<pre># Run directly
+curl -sL vrfy.lol/vrfy.sh | bash -s -- user@example.com
+
+# Or download and use
+curl -sLO vrfy.lol/vrfy.sh &amp;&amp; chmod +x vrfy.sh
+./vrfy.sh user@example.com
+./vrfy.sh user@example.com admin@company.com
+./vrfy.sh --batch emails.txt
+echo "user@example.com" | ./vrfy.sh -
+./vrfy.sh --json user@example.com</pre>
+
+<p>Exit codes: <code>0</code> = allow, <code>1</code> = block, <code>2</code> = verify.</p>
+
+<h3>Go CLI</h3>
+<p>Built with <a href="https://github.com/spf13/cobra">Cobra</a> + <a href="https://github.com/charmbracelet/lipgloss">Lipgloss</a>. Rich terminal output with color.</p>
+<pre># From source
+go install github.com/yokedotlol/vrfy/cmd/vrfy@latest
+
+# Usage
+vrfy check user@example.com
+vrfy check --json user@example.com
+vrfy check --batch emails.txt
+vrfy check --quick user@example.com
+echo "user@example.com" | vrfy check -</pre>
+
+<table>
+<tr><th>Flag</th><th>Description</th></tr>
+<tr><td><code>--json</code></td><td>Output raw JSON</td></tr>
+<tr><td><code>--quick</code></td><td>Quick mode (Tier 1 signals only)</td></tr>
+<tr><td><code>--batch &lt;file&gt;</code></td><td>Read emails from file, one per line</td></tr>
+<tr><td><code>--url &lt;base&gt;</code></td><td>Override API base URL</td></tr>
+</table>
+
+<h4>Go library</h4>
+<pre>import vrfy "github.com/yokedotlol/vrfy"
+
+client := vrfy.NewClient()
+result, err := client.Validate("user@example.com")
+fmt.Println(result.Action) // "allow", "verify", "block"
+
+// Batch
+batch, err := client.ValidateBatch([]string{
+  "alice@gmail.com", "bob@company.com",
+})</pre>
+
+<h3>Node.js / TypeScript</h3>
+<pre>import { validate, validateBatch } from '@yokedotlol/vrfy';
+
+const result = await validate('user@example.com');
+console.log(result.action); // 'allow' | 'verify' | 'block'
+
+if (result.validation.has_typo) {
+  console.log('Did you mean:', result.validation.typo_suggestion);
+}
+
+// Batch (up to 20)
+const batch = await validateBatch([
+  'alice@gmail.com', 'bob@company.com'
+]);</pre>
+
+<h3>Python</h3>
+<pre>from vrfy import validate, validate_batch
+
+result = validate("user@example.com")
+print(result["action"])  # "allow", "verify", or "block"
+
+# Batch
+batch = validate_batch(["alice@gmail.com", "bob@company.com"])
+for r in batch["results"]:
+    print(f"{r['email']} → {r['action']}")</pre>
+
+<h3>All clients support</h3>
+<ul>
+<li>Transparent PoW — rate limits are handled automatically</li>
+<li>Single and batch validation</li>
+<li>Typed responses with full signal access</li>
+<li>Zero configuration — no API keys, no signup</li>
+</ul>
+
+<h3>Source</h3>
+<p>All clients live in <a href="https://github.com/yokedotlol/vrfy-lol/tree/main/clients">github.com/yokedotlol/vrfy-lol/clients</a>.</p>
+<ul>
+<li><a href="https://github.com/yokedotlol/vrfy-lol/tree/main/clients/bash">clients/bash</a> — Shell script</li>
+<li><a href="https://github.com/yokedotlol/vrfy-lol/tree/main/clients/go">clients/go</a> — Go CLI + library</li>
+<li><a href="https://github.com/yokedotlol/vrfy-lol/tree/main/clients/node">clients/node</a> — Node.js/TypeScript</li>
+<li><a href="https://github.com/yokedotlol/vrfy-lol/tree/main/clients/python">clients/python</a> — Python</li>
+</ul>
+</div>`;
+}
+
 /* ── Footer ────────────────────────────────────────────────────────── */
 
 function footer(): string {
@@ -1148,6 +1383,8 @@ function footer(): string {
   <div class="footer-links">
     <a href="https://github.com/yokedotlol/vrfy-lol">GitHub</a>
     <a href="/api/docs">API</a>
+    <a href="/cli">CLI</a>
+    <a href="/pow">PoW</a>
     <a href="/about">About</a>
     <a href="/status">Status</a>
     <a href="/privacy">Privacy</a>
