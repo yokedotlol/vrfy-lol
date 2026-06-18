@@ -824,6 +824,7 @@ function scripts(nonce: string): string {
     if (v.is_ip_literal) html += signalCard(null, 'IP Literal', 'Yes', 'warn');
     if (v.is_internationalized) html += signalCard(null, 'Internationalized', 'EAI/IDN', 'info');
     if (v.is_punycode) html += signalCard(null, 'Punycode', 'Yes', 'warn');
+    if (v.catch_all_likely) html += signalCard(null, 'Catch-All', v.catch_all_reason || 'Likely', 'warn');
     html += '</div>';
 
     // Provider
@@ -893,6 +894,8 @@ function scripts(nonce: string): string {
     html += '<div class="meta-bar">';
     html += '<span>⏱ ' + d._meta.query_ms + 'ms</span>';
     html += '<span>' + d._meta.signals_positive + '/' + d._meta.signals + ' signals positive</span>';
+    if (d._meta.pki_depth !== undefined) html += '<span>🛡 PKI ' + d._meta.pki_depth + '/8</span>';
+    if (d._meta.identity_breadth !== undefined && d._meta.identity_breadth > 0) html += '<span>🪪 Identity ' + d._meta.identity_breadth + '</span>';
     html += '<span>v' + escHtml(d._meta.version) + '</span>';
     html += '</div>';
 
@@ -1066,6 +1069,8 @@ function docsPage(): string {
 <tr><td><code>is_internationalized</code></td><td>boolean</td><td>Uses internationalized characters (EAI/IDN)</td></tr>
 <tr><td><code>is_punycode</code></td><td>boolean</td><td>Domain contains punycode labels (xn--)</td></tr>
 <tr><td><code>domain_type</code></td><td>string|null</td><td>&quot;domain&quot; or &quot;ip_literal&quot;</td></tr>
+<tr><td><code>catch_all_likely</code></td><td>boolean</td><td>Domain likely accepts all addresses (catch-all)</td></tr>
+<tr><td><code>catch_all_reason</code></td><td>string|null</td><td>Why catch-all is suspected (&quot;provider_default&quot;)</td></tr>
 </table>
 
 <h2>Rate Limits</h2>

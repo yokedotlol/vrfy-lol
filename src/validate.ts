@@ -586,6 +586,7 @@ function buildResponse(
   };
 
   const catchAllLikely = provider?.catch_all_default ?? false;
+  const catchAllReason: string | null = catchAllLikely ? 'provider_default' : null;
 
   let action = determineAction({
     syntax_valid: syntax.valid,
@@ -663,6 +664,13 @@ function buildResponse(
     if (confidence === 'valid') confidence = 'likely_valid';
   }
 
+  // Catch-all with SRV services → slight confidence boost
+  // Domains that publish IMAP/JMAP SRV records have intentional mail infrastructure,
+  // making catch-all behavior a deliberate choice rather than misconfiguration
+  if (catchAllLikely && security?.services && security.services.total_found >= 2) {
+    if (confidence === 'likely_valid') confidence = 'valid';
+  }
+
   // Extended validation can boost confidence and promote action
   if (extendedScore !== null && extendedScore > 0.5) {
     if (confidence === 'likely_valid') {
@@ -703,7 +711,34 @@ function buildResponse(
     domain_type: syntax.is_ip_literal ? 'ip_literal' : syntax.domain ? 'domain' : null,
     local_part_pattern: localPartPattern?.classification ?? null,
     local_part_random: localPartPattern?.is_random ?? false,
+    catch_all_likely: catchAllLikely,
+    catch_all_reason: catchAllReason,
   };
+
+  // Derived computed signals
+  // PKI depth: count of security infrastructure layers present (0-8)
+  let pkiDepth: number | undefined;
+  if (security) {
+    pkiDepth = 0;
+    if (security.spf) pkiDepth++;
+    if (security.dmarc.found) pkiDepth++;
+    if (security.bimi) pkiDepth++;
+    if (security.mta_sts) pkiDepth++;
+    if (security.tls_rpt) pkiDepth++;
+    if (security.dane_tlsa) pkiDepth++;
+    if (security.dnssec) pkiDepth++;
+    if (security.services && security.services.total_found > 0) pkiDepth++;
+  }
+
+  // Identity breadth: count of confirmed identity signals from extended validation
+  let identityBreadth: number | undefined;
+  if (adminSignals) {
+    identityBreadth = Object.values(adminSignals).filter(Boolean).length;
+  } else if (extendedScore !== null) {
+    // Without admin details, estimate from score (13 possible signals)
+    const maxScore = 0.976;
+    identityBreadth = Math.round((extendedScore / maxScore) * 13);
+  }
 
   return {
     email: syntax.normalized ?? email,
@@ -717,6 +752,8 @@ function buildResponse(
     _meta: {
       signals: signals.total,
       signals_positive: signals.positive,
+      ...(pkiDepth !== undefined ? { pki_depth: pkiDepth } : {}),
+      ...(identityBreadth !== undefined ? { identity_breadth: identityBreadth } : {}),
       ...(isAdmin ? { cached } : {}),
       query_ms: Date.now() - startMs,
       version: VERSION,

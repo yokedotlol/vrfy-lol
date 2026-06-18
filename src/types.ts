@@ -51,6 +51,10 @@ export interface ValidationResult {
   local_part_pattern: string | null;
   /** Whether the local part appears auto-generated / random */
   local_part_random: boolean;
+  /** Whether catch-all behavior is likely */
+  catch_all_likely: boolean;
+  /** Reason for catch-all determination */
+  catch_all_reason: string | null;
 }
 
 /** Provider identification with behavior hints */
@@ -121,6 +125,10 @@ export interface DmarcResult {
 export interface MetaResult {
   signals: number;
   signals_positive: number;
+  /** Security infrastructure depth (0-8): SPF, DMARC, BIMI, MTA-STS, TLS-RPT, DANE, DNSSEC, SRV services */
+  pki_depth?: number;
+  /** Identity/presence breadth from extended validation (count of confirmed identities) */
+  identity_breadth?: number;
   /** Only present with admin key — omitted from public responses to avoid cache oracle */
   cached?: boolean;
   query_ms: number;
