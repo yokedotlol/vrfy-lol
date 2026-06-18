@@ -72,6 +72,14 @@ export interface HeuristicResult {
   spam_trap_pattern: string | null;
   mx_provider_class: 'enterprise' | 'consumer' | 'self-hosted' | 'forwarding' | 'unknown';
   mx_security_gateway: string | null;
+  /** DNS hosting provider (Cloudflare, Route53, etc.) */
+  ns_provider: string | null;
+  /** Whether the email domain is a subdomain */
+  is_subdomain: boolean;
+  /** Parent domain if subdomain, null otherwise */
+  parent_domain: string | null;
+  /** Subdomain depth (0 = not a subdomain) */
+  subdomain_depth: number;
 }
 
 /** Tier 3 — Email security posture */
@@ -88,6 +96,20 @@ export interface SecurityResult {
   bimi: boolean;
   /** Coarse domain maturity gate: mature/basic/minimal/none */
   domain_maturity: 'mature' | 'basic' | 'minimal' | 'none';
+  /** DNS SRV service discovery */
+  services?: {
+    submission: boolean;
+    imap: boolean;
+    jmap: boolean;
+    autodiscover: boolean;
+    total_found: number;
+  };
+  /** Domain registration age */
+  domain_age?: {
+    registered: string | null;
+    age_days: number | null;
+    is_new: boolean;
+  };
 }
 
 export interface DmarcResult {

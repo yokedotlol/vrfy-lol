@@ -30,6 +30,9 @@ import {
 import {
   fingerprintMx, isSelfHostedMx,
 } from './validators/mx-fingerprint';
+import {
+  checkDnsServices, detectNsProvider, detectSubdomain, checkDomainAge,
+} from './validators/dns-services';
 
 const VERSION = '1.0.0';
 const DOMAIN_CACHE_TTL = 604800;   // 7 days in seconds
@@ -108,7 +111,8 @@ export async function validateEmail(
       null, null,
       { risky_tld: false, tld: '', domain_entropy: 0, entropy_suspicious: false,
         spam_trap: spamTrap.is_spam_trap, spam_trap_pattern: spamTrap.pattern,
-        mx_provider_class: 'self-hosted', mx_security_gateway: null },
+        mx_provider_class: 'self-hosted', mx_security_gateway: null,
+        ns_provider: null, is_subdomain: false, parent_domain: null, subdomain_depth: 0 },
       lpPattern,
       undefined,
     );
@@ -160,8 +164,8 @@ export async function validateEmail(
     }
 
     // MX lookup (async) + DNS security checks (async, parallel)
-    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult, tlsRptResult, dnssecResult] = options.quick
-      ? [await checkMx(domain), null, null, null, null, null, null]
+    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult, tlsRptResult, dnssecResult, srvResult, nsResult, domainAgeResult] = options.quick
+      ? [await checkMx(domain), null, null, null, null, null, null, null, null, null]
       : await Promise.all([
           checkMx(domain),
           checkDmarc(domain),
@@ -170,6 +174,9 @@ export async function validateEmail(
           checkMtaSts(domain),
           checkTlsRpt(domain),
           checkDnssec(domain),
+          checkDnsServices(domain),
+          detectNsProvider(domain),
+          checkDomainAge(domain),
         ]);
 
     mx = mxResult;
@@ -201,15 +208,34 @@ export async function validateEmail(
         dmarcResult, spfResult, bimiResult, mtaStsResult,
         tlsRptResult, daneTlsaResult, dnssecResult,
       );
+      // Attach SRV services
+      if (srvResult) {
+        security.services = {
+          submission: srvResult.has_submission,
+          imap: srvResult.has_imap,
+          jmap: srvResult.has_jmap,
+          autodiscover: srvResult.has_autodiscover,
+          total_found: srvResult.services_found,
+        };
+      }
+      // Attach domain age
+      if (domainAgeResult) {
+        security.domain_age = {
+          registered: domainAgeResult.registered,
+          age_days: domainAgeResult.age_days,
+          is_new: domainAgeResult.is_new,
+        };
+      }
     }
 
     await options.onProgress?.({ stage: 'security', status: security ? 'complete' : 'skipped', elapsed_ms: Date.now() - startMs });
 
-    // Domain heuristics (sync, instant)
+    // Domain heuristics (sync, instant) + NS provider
     const riskyTld = checkRiskyTld(domain);
     const entropy = checkDomainEntropy(domain);
     const mxFp = fingerprintMx(mx.mx_records);
     const selfHosted = isSelfHostedMx(mx.mx_records, domain);
+    const subdomainInfo = detectSubdomain(domain);
 
     heuristics = {
       risky_tld: riskyTld.is_risky_tld,
@@ -220,6 +246,10 @@ export async function validateEmail(
       spam_trap_pattern: null,
       mx_provider_class: selfHosted ? 'self-hosted' : mxFp.mx_provider_class,
       mx_security_gateway: mxFp.mx_security_gateway,
+      ns_provider: nsResult?.provider ?? null,
+      is_subdomain: subdomainInfo.is_subdomain,
+      parent_domain: subdomainInfo.parent_domain,
+      subdomain_depth: subdomainInfo.depth,
     };
 
     // Cache domain-level results (7-day TTL)
@@ -491,6 +521,17 @@ function countSignals(
     total++; if (!heuristics.spam_trap) positive++;     // not spam trap
     total++;                                            // mx class known
     if (heuristics.mx_provider_class !== 'unknown') positive++;
+    total++; if (!heuristics.is_subdomain) positive++;  // not a subdomain
+    total++; if (heuristics.ns_provider !== null) positive++; // NS provider identified
+  }
+
+  // Security sub-signals (services + domain age)
+  if (security?.services) {
+    total++; if (security.services.submission) positive++; // SMTP submission SRV
+    total++; if (security.services.imap) positive++;       // IMAP SRV
+  }
+  if (security?.domain_age) {
+    total++; if (!security.domain_age.is_new) positive++;  // not a brand-new domain
   }
 
   // Local-part pattern signal
@@ -610,6 +651,16 @@ function buildResponse(
     if (security.domain_maturity === 'none' && action === 'allow') {
       action = 'verify';
     }
+    // Brand-new domain (< 30 days) → reduce confidence, force verify
+    if (security.domain_age?.is_new) {
+      if (confidence === 'valid') confidence = 'likely_valid';
+      if (action === 'allow') action = 'verify';
+    }
+  }
+
+  // Subdomain email → reduce confidence (less common, higher risk)
+  if (heuristics?.is_subdomain && heuristics.subdomain_depth > 0) {
+    if (confidence === 'valid') confidence = 'likely_valid';
   }
 
   // Extended validation can boost confidence and promote action
