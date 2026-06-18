@@ -446,12 +446,12 @@ function countSignals(
   if (extendedScore !== null) {
     // The extended plugin checked N signals internally — we report
     // a fixed count since the plugin is opaque
-    total += 8; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase, libravatar, gitlab
+    total += 10; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase, libravatar, gitlab, microsoft, emailrep
     // Map opaque score to positive signal count proportionally
-    // Max soft-OR score with 8 signals ≈ 0.889, so scale accordingly
-    const maxScore = 0.889;
-    const extPositive = Math.round((extendedScore / maxScore) * 8);
-    positive += Math.min(extPositive, 8);
+    // Max soft-OR score with 10 signals ≈ 0.938, so scale accordingly
+    const maxScore = 0.938;
+    const extPositive = Math.round((extendedScore / maxScore) * 10);
+    positive += Math.min(extPositive, 10);
   }
 
   return { total, positive };
