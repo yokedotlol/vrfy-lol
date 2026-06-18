@@ -236,13 +236,6 @@ async function handlePost(
 
   const result = await validateEmail(body.email, env, options);
 
-  if (result._meta.cached) {
-    return json(result, 200, {
-      ...corsHeaders,
-      'X-Vrfy-Version': VERSION,
-    });
-  }
-
   if (body.pow) {
     const powValid = await verifyPow(body.pow, ip, env.POW_SECRET);
     if (!powValid) {
