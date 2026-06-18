@@ -145,6 +145,10 @@ npx wrangler deploy
 - KV namespace for caching
 - Durable Object for rate limiting
 
+### Service bindings (optional)
+
+`wrangler.toml` declares optional service bindings to sibling `.lol` workers (yoke, vrfy-extended). If you're self-hosting vrfy standalone, remove the `[[services]]` blocks from `wrangler.toml` before deploying — vrfy falls back to its own inline DNS checks automatically.
+
 ## Privacy
 
 - **POST-only** — emails never appear in URLs, logs, or CDN analytics

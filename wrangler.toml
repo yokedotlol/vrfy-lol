@@ -35,12 +35,17 @@ zone_id = "17c5e0dd21faa482187d027435914a45"
 #   openssl rand -hex 32 | wrangler secret put CACHE_SECRET
 #   openssl rand -hex 32 | wrangler secret put POW_SECRET
 
-# Extended validation service binding (closed-source plugin)
+# ─── Optional service bindings ───
+# These connect vrfy to sibling .lol services for richer signals.
+# Self-hosters: remove any bindings you don't have deployed —
+# vrfy falls back to its own checks automatically for all of them.
+
+# Extended validation (closed-source existence signals plugin)
 [[services]]
 binding = "EXTENDED_VALIDATION"
 service = "vrfy-extended"
 
-# Yoke domain intelligence service binding (.lol family)
+# Yoke domain intelligence (email auth + DNSSEC from yoke's cache)
 [[services]]
 binding = "YOKE"
 service = "yoke"
