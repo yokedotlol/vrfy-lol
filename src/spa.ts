@@ -635,6 +635,9 @@ function scripts(nonce: string): string {
     html += signalCard(!v.role_account, 'Role Account', v.role_account ? 'Yes' : 'No', v.role_account ? 'warn' : 'good');
     html += signalCard(null, 'Subaddress', v.subaddressed ? ('+' + escHtml(v.subaddress_tag || '')) : 'No', v.subaddressed ? 'info' : 'good');
     html += signalCard(!v.has_typo, 'Typo Detected', v.has_typo ? 'Yes' : 'No', v.has_typo ? 'warn' : 'good');
+    if (v.is_ip_literal) html += signalCard(null, 'IP Literal', 'Yes', 'warn');
+    if (v.is_internationalized) html += signalCard(null, 'Internationalized', 'EAI/IDN', 'info');
+    if (v.is_punycode) html += signalCard(null, 'Punycode', 'Yes', 'warn');
     html += '</div>';
 
     // Provider
@@ -718,7 +721,7 @@ function landingPage(): string {
   </div>
   <div class="feature">
     <div class="feature-title">Disposable Detection</div>
-    <div class="feature-desc">100K+ disposable domains bundled. Wildcard + MX-based detection.</div>
+    <div class="feature-desc">141K+ disposable domains bundled. Wildcard + MX-based detection.</div>
   </div>
   <div class="feature">
     <div class="feature-title">Privacy Relays</div>
@@ -819,6 +822,10 @@ function docsPage(): string {
 <tr><td><code>typo_suggestion</code></td><td>string|null</td><td>Corrected email if typo detected</td></tr>
 <tr><td><code>provider</code></td><td>object|null</td><td>Identified email provider with behavior hints</td></tr>
 <tr><td><code>subaddressed</code></td><td>boolean</td><td>Contains + tag (e.g. user+tag@)</td></tr>
+<tr><td><code>is_ip_literal</code></td><td>boolean</td><td>Domain is an IP literal ([1.1.1.1])</td></tr>
+<tr><td><code>is_internationalized</code></td><td>boolean</td><td>Uses internationalized characters (EAI/IDN)</td></tr>
+<tr><td><code>is_punycode</code></td><td>boolean</td><td>Domain contains punycode labels (xn--)</td></tr>
+<tr><td><code>domain_type</code></td><td>string|null</td><td>&quot;domain&quot; or &quot;ip_literal&quot;</td></tr>
 </table>
 
 <h2>Rate Limits</h2>
@@ -860,7 +867,7 @@ function privacyPage(): string {
 <li><strong>Libravatar</strong> (libravatar.org) — MD5 hash of the email only</li>
 <li><strong>GitHub</strong> (api.github.com) — email address sent to search API</li>
 <li><strong>GitLab</strong> (gitlab.com) — email address sent to search API</li>
-<li><strong>Have I Been Pwned</strong> (haveibeenpwned.com) — email address sent to breach lookup API</li>
+<li><strong>XposedOrNot</strong> (xposedornot.com) — email address sent to breach lookup API</li>
 </ul>
 <p>These lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
 

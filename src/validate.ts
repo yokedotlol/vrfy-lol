@@ -65,6 +65,36 @@ export async function validateEmail(
 
   const domain = syntax.domain;
   const localPart = syntax.local_part;
+  const isIpLiteral = syntax.is_ip_literal;
+
+  // IP literal addresses (e.g. user@[1.1.1.1]) — the IP IS the mail server.
+  // No MX lookup, no domain heuristics, no caching. Syntactically valid per
+  // RFC 5321 §4.1.3 but extremely unusual in practice.
+  if (isIpLiteral) {
+    const syntheticMx: MxResult = {
+      has_mx: false,
+      mx_records: [],
+      null_mx: false,
+      domain_exists: true, // IP exists by definition
+      has_a_fallback: true, // the IP itself is the fallback
+      error: null,
+    };
+    const roleAccount = isRoleAccount(localPart);
+    const subaddress = detectSubaddress(localPart, domain);
+    const spamTrap = checkSpamTrap(localPart);
+
+    return buildResponse(
+      email, syntax, syntheticMx, null, false, false,
+      false, null, roleAccount,
+      { has_typo: false, suggestion: null, original_domain: domain, suggested_domain: null, distance: null },
+      null, subaddress, startMs, false,
+      null, null,
+      { risky_tld: false, tld: '', domain_entropy: 0, entropy_suspicious: false,
+        spam_trap: spamTrap.is_spam_trap, spam_trap_pattern: spamTrap.pattern,
+        mx_provider_class: 'self-hosted', mx_security_gateway: null },
+      undefined,
+    );
+  }
 
   // Step 2: Check domain-level cache (key is plain domain — not PII)
   let cached = false;
@@ -465,6 +495,7 @@ function buildResponse(
     is_free_provider: freeProvider,
     has_typo: typo?.has_typo ?? false,
     catch_all_likely: catchAllLikely,
+    is_ip_literal: syntax.is_ip_literal,
   });
 
   let confidence = classifyConfidence({
@@ -476,6 +507,7 @@ function buildResponse(
     is_free_provider: freeProvider,
     provider,
     has_typo: typo?.has_typo ?? false,
+    is_ip_literal: syntax.is_ip_literal,
   });
 
   // Phase 1 heuristic adjustments
@@ -543,6 +575,10 @@ function buildResponse(
     subaddressed: subaddress?.is_subaddressed ?? false,
     subaddress_tag: subaddress?.tag ?? null,
     subaddress_base: subaddress?.base_address ?? null,
+    is_ip_literal: syntax.is_ip_literal,
+    is_internationalized: syntax.is_internationalized,
+    is_punycode: syntax.domain ? /xn--/i.test(syntax.domain) : false,
+    domain_type: syntax.is_ip_literal ? 'ip_literal' : syntax.domain ? 'domain' : null,
   };
 
   return {

@@ -20,6 +20,7 @@ interface ConfidenceInput {
   is_free_provider: boolean;
   provider: ProviderInfo | null;
   has_typo: boolean;
+  is_ip_literal?: boolean;
   // Phase 2: domain_age_days, dnsbl_listed
 }
 
@@ -29,6 +30,10 @@ interface ConfidenceInput {
 export function classifyConfidence(input: ConfidenceInput): Confidence {
   // ─── Invalid — cannot receive mail ───
   if (!input.syntax_valid) return 'invalid';
+
+  // IP literals are RFC-valid but we can't verify anything via DNS
+  if (input.is_ip_literal) return 'risky';
+
   if (!input.mx.domain_exists) return 'invalid';
   if (input.mx.null_mx) return 'invalid';
   if (!input.mx.has_mx && !input.mx.has_a_fallback) return 'invalid';

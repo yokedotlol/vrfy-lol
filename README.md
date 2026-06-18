@@ -61,9 +61,9 @@ curl -s -X POST https://vrfy.lol/batch \
 | `verify` | Uncertain, needs confirmation | Send a verification email |
 | `block` | Strong negative signals | Reject or flag for review |
 
-## Signals (26 total)
+## Signals (29 total)
 
-### Base Layer (open source, 18 signals)
+### Base Layer (open source, 21 signals)
 - **Syntax** — RFC 5321 validation, internationalized email support
 - **MX Records** — DNS lookup via DoH, null MX detection, A-record fallback
 - **Disposable Detection** — 141,000+ known throwaway domains
@@ -73,6 +73,9 @@ curl -s -X POST https://vrfy.lol/batch \
 - **Typo Detection** — Levenshtein distance against known providers
 - **Provider ID** — MX-based provider identification with behavior hints
 - **Subaddress** — `+tag` detection with base address extraction
+- **IP Literal** — RFC 5321 §4.1.3 IP address domain detection (`[1.1.1.1]`, `[IPv6:...]`)
+- **Internationalized (EAI)** — SMTPUTF8/IDN domain detection
+- **Punycode** — `xn--` encoded domain label detection (homograph attack vector)
 - **DMARC** — Policy analysis (none/quarantine/reject)
 - **SPF** — Record presence and strictness
 - **BIMI** — Brand indicator record detection
@@ -91,7 +94,7 @@ The optional closed-source plugin adds existence signals via [Cloudflare Service
 - WebFinger (RFC 7033) account discovery
 - PGP key lookup (keys.openpgp.org)
 - Keybase identity graph
-- XON (cross-origin name resolution)
+- XON (XposedOrNot breach database)
 - Libravatar (federated avatar service)
 - GitLab account discovery
 
@@ -118,8 +121,6 @@ curl -s -X POST https://vrfy.lol/ \
   -H 'Content-Type: application/json' \
   -d '{"email": "user@example.com"}' | jq
 
-# Domain-only lookup (GET)
-curl -s https://vrfy.lol/example.com | jq
 ```
 
 ## Self-Hosting

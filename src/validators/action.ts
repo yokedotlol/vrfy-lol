@@ -18,6 +18,7 @@ interface ActionInput {
   is_free_provider: boolean;
   has_typo: boolean;
   catch_all_likely: boolean;
+  is_ip_literal?: boolean;
 }
 
 /**
@@ -37,6 +38,7 @@ export function determineAction(input: ActionInput): Action {
   if (input.is_disposable) return 'block';
 
   // ─── Verify conditions ───
+  if (input.is_ip_literal) return 'verify'; // RFC-valid but extremely unusual
   if (input.has_typo) return 'verify';
   if (input.is_privacy_relay) return 'verify';
   if (input.is_role_account) return 'verify';

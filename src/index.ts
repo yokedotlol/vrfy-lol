@@ -320,7 +320,7 @@ async function handleBatch(
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
 
   if (body.pow) {
-    const batchDifficulty = 18 + Math.floor(Math.log2(body.emails.length));
+    const batchDifficulty = 20 + Math.floor(Math.log2(body.emails.length));
     const powValid = await verifyPow(body.pow, ip, env.POW_SECRET, batchDifficulty);
     if (!powValid) {
       const challenge = await generateChallenge(ip, env.POW_SECRET, batchDifficulty);
@@ -343,7 +343,7 @@ async function handleBatch(
   } else {
     const rateLimit = await checkRateLimit(env.RATE_LIMITER, ip);
     if (!rateLimit.allowed) {
-      const batchDifficulty = 18 + Math.floor(Math.log2(body.emails.length));
+      const batchDifficulty = 20 + Math.floor(Math.log2(body.emails.length));
       const challenge = await generateChallenge(ip, env.POW_SECRET, batchDifficulty);
       return errorJson(ERRORS.rateLimited(challenge), corsHeaders, {
         'Retry-After': '0',

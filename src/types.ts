@@ -39,6 +39,14 @@ export interface ValidationResult {
   subaddressed: boolean;
   subaddress_tag: string | null;
   subaddress_base: string | null;
+  /** Domain part is an IP literal ([1.1.1.1] or [IPv6:...]) */
+  is_ip_literal: boolean;
+  /** Domain uses internationalized characters (EAI/SMTPUTF8) */
+  is_internationalized: boolean;
+  /** Domain contains punycode-encoded labels (xn--) */
+  is_punycode: boolean;
+  /** Domain type classification */
+  domain_type: 'domain' | 'ip_literal' | null;
 }
 
 /** Provider identification with behavior hints */
