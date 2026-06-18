@@ -943,10 +943,9 @@ function privacyPage(): string {
 <p>Extended validation checks whether an email address has a public presence on third-party services. When extended validation is requested, the email address may be sent to:</p>
 <ul>
 <li><strong>Gravatar</strong> (gravatar.com) — MD5 hash of the email only</li>
-<li><strong>Libravatar</strong> (libravatar.org) — MD5 hash of the email only</li>
-<li><strong>GitHub</strong> (api.github.com) — email address sent to search API</li>
-<li><strong>GitLab</strong> (gitlab.com) — email address sent to search API</li>
-<li><strong>XposedOrNot</strong> (xposedornot.com) — email address sent to breach lookup API</li>
+<li><strong>Have I Been Pwned</strong> (haveibeenpwned.com) — email address sent to breach lookup API</li>
+<li><strong>Webfinger</strong> (target domain) — RFC 7033 discovery query to the email's domain</li>
+<li><strong>OpenPGP</strong> (keys.openpgp.org) — email address sent to key lookup API</li>
 </ul>
 <p>These lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
 
