@@ -40,8 +40,10 @@ export function determineAction(input: ActionInput): Action {
   if (input.has_typo) return 'verify';
   if (input.is_privacy_relay) return 'verify';
   if (input.is_role_account) return 'verify';
-  if (input.is_free_provider && input.is_role_account) return 'verify';
-  if (input.catch_all_likely) return 'verify';
+
+  // Catch-all on known free providers (Gmail, Yahoo, etc.) is expected
+  // behavior — don't penalize the user for their provider's default.
+  if (input.catch_all_likely && !input.is_free_provider) return 'verify';
 
   // ─── Allow ───
   return 'allow';

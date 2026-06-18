@@ -19,7 +19,7 @@ export interface ErrorResponse {
   pow?: PowChallenge;
 }
 
-const DOCS_BASE = 'https://vrfy.lol/docs';
+const DOCS_BASE = 'https://vrfy.lol/api';
 
 /**
  * Build an error response object with the standard shape.
@@ -32,7 +32,7 @@ export function buildError(
   const resp: ErrorResponse = { error: code, message };
 
   if (code === 'rate_limited' || code === 'pow_invalid') {
-    resp.docs = `${DOCS_BASE}/pow`;
+    resp.docs = `${DOCS_BASE}/docs`;
   }
 
   if (pow) {
@@ -81,8 +81,7 @@ export const ERRORS = {
   rateLimited: (pow: PowChallenge) => buildError(
     'rate_limited',
     'Rate limit exceeded. Include a proof-of-work solution to continue. '
-    + 'Install our SDK (npm install @vrfy/sdk) for automatic solving, '
-    + 'or see https://vrfy.lol/docs/pow for the protocol.',
+    + 'See https://vrfy.lol/api/docs for the protocol.',
     pow,
   ),
   powInvalid: (pow: PowChallenge) => buildError(

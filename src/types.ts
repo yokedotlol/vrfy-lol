@@ -13,7 +13,6 @@ export interface VrfyResponse {
   action: Action;
   confidence: Confidence;
   validation: ValidationResult;
-  enrichment?: EnrichmentResult;
   security?: SecurityResult;
   heuristics?: HeuristicResult;
   _admin?: AdminResult;
@@ -49,15 +48,6 @@ export interface ProviderInfo {
   catch_all_default: boolean;
   smtp_verification: 'reliable' | 'unreliable' | 'blocked' | 'unknown';
   note: string;
-}
-
-/** Tier 2 — Enrichment signals */
-export interface EnrichmentResult {
-  domain_age_days: number | null;
-  registered_date: string | null;
-  dnsbl_listed: boolean;
-  dnsbl_lists_checked: number;
-  catch_all_likely: boolean;
 }
 
 /** Phase 1 heuristic signals — local computation, no network */

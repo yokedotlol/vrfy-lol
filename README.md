@@ -61,7 +61,7 @@ curl -s -X POST https://vrfy.lol/batch \
 | `verify` | Uncertain, needs confirmation | Send a verification email |
 | `block` | Strong negative signals | Reject or flag for review |
 
-## Signals (23 total)
+## Signals (26 total)
 
 ### Base Layer (open source, 18 signals)
 - **Syntax** — RFC 5321 validation, internationalized email support
@@ -83,7 +83,7 @@ curl -s -X POST https://vrfy.lol/batch \
 - **Spam Trap** — Pattern-based spam trap identification
 - **Security Grade** — A+ through F composite email security posture
 
-### Extended Layer (proprietary, 5 signals)
+### Extended Layer (proprietary, 8 signals)
 The optional closed-source plugin adds existence signals via [Cloudflare Service Binding](https://developers.cloudflare.com/workers/configuration/bindings/about-service-bindings/). Returns an opaque 0.0–1.0 score. Self-hosters get everything above; the extended layer is a confidence boost, not a gate.
 
 - Gravatar hash lookup (~260M profiles)
@@ -91,6 +91,9 @@ The optional closed-source plugin adds existence signals via [Cloudflare Service
 - WebFinger (RFC 7033) account discovery
 - PGP key lookup (keys.openpgp.org)
 - Keybase identity graph
+- XON (cross-origin name resolution)
+- Libravatar (federated avatar service)
+- GitLab account discovery
 
 ## Rate Limits
 
@@ -100,33 +103,21 @@ The optional closed-source plugin adds existence signals via [Cloudflare Service
 | PoW bypass | Unlimited | Solve a SHA-256 hashcash challenge |
 | Cached | Doesn't count | Domain results cached 7 days |
 
-The API returns a `pow` object with rate-limit responses. Client SDKs solve challenges transparently.
+The API returns a `pow` object with rate-limit responses. See `/api/docs` for the protocol.
 
-## Client SDKs
-
-All SDKs handle proof-of-work automatically — rate limits are invisible to the caller.
-
-| Language | Install | Usage |
-|----------|---------|-------|
-| **Go** | `go get github.com/yokedotlol/vrfy` | `vrfy.Validate("user@example.com")` |
-| **Node** | `npm install @yokedotlol/vrfy` | `await validate("user@example.com")` |
-| **Python** | `pip install vrfy` | `vrfy.validate("user@example.com")` |
-| **Bash** | `curl -sL vrfy.lol/vrfy.sh` | `./vrfy.sh user@example.com` |
-
-CLIs included with each SDK:
+## Usage
 
 ```bash
-# Go
-vrfy check user@example.com
+# Quick validation (syntax + MX only)
+curl -s 'https://vrfy.lol/user@example.com?quick=true' | jq
 
-# Node
-npx @yokedotlol/vrfy user@example.com
+# Full validation
+curl -s https://vrfy.lol/user@example.com | jq
 
-# Python
-python -m vrfy user@example.com
-
-# Bash
-./vrfy.sh user@example.com
+# Programmatic (POST)
+curl -s -X POST https://vrfy.lol/ \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "user@example.com"}' | jq
 ```
 
 ## Self-Hosting

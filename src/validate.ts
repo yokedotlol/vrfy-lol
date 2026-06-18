@@ -125,6 +125,13 @@ export async function validateEmail(
     // Provider detection from MX
     provider = mx.has_mx ? detectProvider(mx.mx_records.map(r => r.host)) : null;
 
+    // Reconcile provider.is_free with the free-providers list.
+    // MX-based detection can't distinguish Gmail from Google Workspace
+    // (same MX hosts), so the domain-level free-provider check wins.
+    if (provider && freeProvider && !provider.is_free) {
+      provider = { ...provider, is_free: true };
+    }
+
     // Build security result if we ran the checks
     if (dmarcResult && spfResult && bimiResult && mtaStsResult) {
       security = buildSecurityResult(dmarcResult, spfResult, bimiResult, mtaStsResult);
@@ -405,12 +412,12 @@ function countSignals(
   if (extendedScore !== null) {
     // The extended plugin checked N signals internally — we report
     // a fixed count since the plugin is opaque
-    total += 6; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase
-    if (extendedScore > 0.0) positive++;
-    if (extendedScore > 0.25) positive++;
-    if (extendedScore > 0.5) positive++;
-    if (extendedScore > 0.75) positive++;
-    if (extendedScore >= 1.0) positive++;
+    total += 8; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase, libravatar, gitlab
+    // Map opaque score to positive signal count proportionally
+    // Max soft-OR score with 8 signals ≈ 0.889, so scale accordingly
+    const maxScore = 0.889;
+    const extPositive = Math.round((extendedScore / maxScore) * 8);
+    positive += Math.min(extPositive, 8);
   }
 
   return { total, positive };
