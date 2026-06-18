@@ -122,7 +122,7 @@ export default {
               'GET /health': 'Health check',
             },
             rate_limit: {
-              free: '10/hour + 50/day per IP (cache hits exempt)',
+              free: '10/hour + 50/day per IP',
               pow: 'Unlimited with proof-of-work',
             },
             example: 'curl -s -X POST https://vrfy.lol/ -H "Content-Type: application/json" -d \'{"email":"user@example.com"}\' | jq .action',

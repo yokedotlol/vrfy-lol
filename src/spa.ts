@@ -908,7 +908,7 @@ function docsPage(): string {
 </table>
 
 <h2>Rate Limits</h2>
-<p>Free tier: 10 requests/hour + 50/day per IP. Cache hits are exempt.</p>
+<p>Free tier: 10 requests/hour + 50/day per IP.</p>
 <p>Need more? Solve a proof-of-work challenge (SHA-256 hashcash, difficulty 20, ~2–8s CPU) and include the solution in your request. Unlimited with valid PoW. <a href="/pow">Full PoW protocol docs →</a></p>
 
 <h2>Cross-origin</h2>
@@ -1262,7 +1262,6 @@ function countLeadingZeroBits(hash) {
 <tr><td>Free</td><td>10 requests/hour + 50/day per IP</td></tr>
 <tr><td>With PoW</td><td>Unlimited</td></tr>
 </table>
-<p>Cached responses don't count against the free tier.</p>
 
 <h3>Client libraries</h3>
 <p>All official clients solve PoW transparently — you never need to implement this yourself unless you're calling the API directly.</p>
