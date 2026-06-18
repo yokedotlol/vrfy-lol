@@ -66,7 +66,7 @@ curl -s -X POST https://vrfy.lol/batch \
 ### Base Layer (open source, 18 signals)
 - **Syntax** — RFC 5321 validation, internationalized email support
 - **MX Records** — DNS lookup via DoH, null MX detection, A-record fallback
-- **Disposable Detection** — 6,900+ known throwaway domains
+- **Disposable Detection** — 141,000+ known throwaway domains
 - **Privacy Relay** — Apple, Firefox, DuckDuckGo relay classification
 - **Free Provider** — Gmail, Yahoo, Outlook, etc.
 - **Role Account** — `admin@`, `postmaster@`, `noreply@`, etc.
@@ -109,15 +109,17 @@ The API returns a `pow` object with rate-limit responses. See `/api/docs` for th
 
 ```bash
 # Quick validation (syntax + MX only)
-curl -s 'https://vrfy.lol/user@example.com?quick=true' | jq
+curl -s -X POST https://vrfy.lol/ \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "user@example.com", "quick": true}' | jq
 
 # Full validation
-curl -s https://vrfy.lol/user@example.com | jq
-
-# Programmatic (POST)
 curl -s -X POST https://vrfy.lol/ \
   -H 'Content-Type: application/json' \
   -d '{"email": "user@example.com"}' | jq
+
+# Domain-only lookup (GET)
+curl -s https://vrfy.lol/example.com | jq
 ```
 
 ## Self-Hosting
