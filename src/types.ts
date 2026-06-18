@@ -47,6 +47,10 @@ export interface ValidationResult {
   is_punycode: boolean;
   /** Domain type classification */
   domain_type: 'domain' | 'ip_literal' | null;
+  /** Local-part structural pattern classification */
+  local_part_pattern: string | null;
+  /** Whether the local part appears auto-generated / random */
+  local_part_random: boolean;
 }
 
 /** Provider identification with behavior hints */

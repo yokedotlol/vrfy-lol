@@ -18,6 +18,7 @@ import { isDisposableDomain } from './data/disposable';
 import { isFreeProvider } from './data/free-providers';
 import { determineAction } from './validators/action';
 import { classifyConfidence } from './validators/confidence';
+import { classifyLocalPart } from './validators/local-part-pattern';
 import {
   checkDmarc, checkSpf, checkBimi, checkMtaSts,
   buildSecurityResult,
@@ -58,7 +59,7 @@ export async function validateEmail(
 
   if (!syntax.valid || !syntax.domain || !syntax.local_part) {
     // Invalid syntax — return immediately, no DNS needed
-    return buildResponse(email, syntax, null, null, false, false, false, null, false, null, null, null, startMs, false, null, null, null, undefined);
+    return buildResponse(email, syntax, null, null, false, false, false, null, false, null, null, null, startMs, false, null, null, null, null, undefined);
   }
 
   const domain = syntax.domain;
@@ -80,6 +81,7 @@ export async function validateEmail(
     const roleAccount = isRoleAccount(localPart);
     const subaddress = detectSubaddress(localPart, domain);
     const spamTrap = checkSpamTrap(localPart);
+    const lpPattern = classifyLocalPart(localPart);
 
     return buildResponse(
       email, syntax, syntheticMx, null, false, false,
@@ -90,6 +92,7 @@ export async function validateEmail(
       { risky_tld: false, tld: '', domain_entropy: 0, entropy_suspicious: false,
         spam_trap: spamTrap.is_spam_trap, spam_trap_pattern: spamTrap.pattern,
         mx_provider_class: 'self-hosted', mx_security_gateway: null },
+      lpPattern,
       undefined,
     );
   }
@@ -201,6 +204,7 @@ export async function validateEmail(
   const typo = detectTypo(domain);
   const subaddress = detectSubaddress(localPart, domain);
   const spamTrap = checkSpamTrap(localPart);
+  const localPartPattern = classifyLocalPart(localPart);
 
   // Merge per-email spam trap into heuristics (domain part is cached, local part isn't)
   const emailHeuristics: HeuristicResult | null = heuristics
@@ -236,6 +240,7 @@ export async function validateEmail(
     privacyRelay, privacyRelayService, roleAccount,
     typo, typoSuggestion, subaddress, startMs, cached,
     extendedScore, security, emailHeuristics,
+    localPartPattern,
     isAdmin ? extendedResult?.signals : undefined,
   );
 }
@@ -405,6 +410,7 @@ function countSignals(
   extendedScore: number | null,
   security: SecurityResult | null,
   heuristics: HeuristicResult | null,
+  localPartRandom: boolean,
 ): SignalsCount {
   let total = 0;
   let positive = 0;
@@ -442,16 +448,19 @@ function countSignals(
     if (heuristics.mx_provider_class !== 'unknown') positive++;
   }
 
+  // Local-part pattern signal
+  total++; if (!localPartRandom) positive++;            // not random local-part
+
   // Extended validation (opaque score → binary signal)
   if (extendedScore !== null) {
     // The extended plugin checked N signals internally — we report
     // a fixed count since the plugin is opaque
-    total += 10; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase, libravatar, gitlab, microsoft, emailrep
+    total += 12; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase, libravatar, gitlab, microsoft, emailrep, wkd, openpgpkey_dns
     // Map opaque score to positive signal count proportionally
-    // Max soft-OR score with 10 signals ≈ 0.938, so scale accordingly
-    const maxScore = 0.938;
-    const extPositive = Math.round((extendedScore / maxScore) * 10);
-    positive += Math.min(extPositive, 10);
+    // Max soft-OR score with 12 signals ≈ 0.970, so scale accordingly
+    const maxScore = 0.970;
+    const extPositive = Math.round((extendedScore / maxScore) * 12);
+    positive += Math.min(extPositive, 12);
   }
 
   return { total, positive };
@@ -477,6 +486,7 @@ function buildResponse(
   extendedScore: number | null,
   security: SecurityResult | null,
   heuristics: HeuristicResult | null,
+  localPartPattern: ReturnType<typeof classifyLocalPart> | null,
   adminSignals?: Record<string, boolean>,
 ): VrfyResponse {
   const effectiveMx: MxResult = mx ?? {
@@ -534,6 +544,12 @@ function buildResponse(
     }
   }
 
+  // Random local-part → bump toward verify, reduce confidence
+  if (localPartPattern?.is_random) {
+    if (action === 'allow') action = 'verify';
+    if (confidence === 'valid') confidence = 'likely_valid';
+  }
+
   // Security posture adjustments
   if (security) {
     // Strong security grade → boost confidence
@@ -562,6 +578,7 @@ function buildResponse(
     roleAccount, typo?.has_typo ?? false, provider,
     subaddress?.is_subaddressed ?? false, extendedScore,
     security, heuristics,
+    localPartPattern?.is_random ?? false,
   );
 
   const validation: ValidationResult = {
@@ -583,6 +600,8 @@ function buildResponse(
     is_internationalized: syntax.is_internationalized,
     is_punycode: syntax.domain ? /xn--/i.test(syntax.domain) : false,
     domain_type: syntax.is_ip_literal ? 'ip_literal' : syntax.domain ? 'domain' : null,
+    local_part_pattern: localPartPattern?.classification ?? null,
+    local_part_random: localPartPattern?.is_random ?? false,
   };
 
   return {
