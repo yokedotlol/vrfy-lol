@@ -1,13 +1,14 @@
 // ─── DNS security posture checks ───
-// DMARC, SPF, BIMI, MTA-STS — all via Cloudflare DoH.
+// DMARC, SPF, BIMI, MTA-STS, TLS-RPT, DANE TLSA, DNSSEC — all via Cloudflare DoH.
 // These are pure DNS lookups: free, fast, cacheable, zero privacy risk.
 // Fail-open: if a query fails, the signal is absent, not an error.
 
-import type { DohResponse, SecurityResult } from '../types';
+import type { DohResponse, MxRecord, SecurityResult } from '../types';
 
 const DOH_ENDPOINT = 'https://cloudflare-dns.com/dns-query';
 const DOH_TIMEOUT = 5000;
 const TYPE_TXT = 16;
+const TYPE_TLSA = 52;
 
 // ─── Individual checks ───
 
@@ -124,6 +125,87 @@ export async function checkMtaSts(domain: string): Promise<MtaStsCheckResult> {
   }
 }
 
+// ─── New Phase 2 checks ───
+
+export interface TlsRptCheckResult {
+  found: boolean;
+}
+
+export interface DaneTlsaCheckResult {
+  found: boolean;
+}
+
+export interface DnssecCheckResult {
+  enabled: boolean;
+}
+
+/**
+ * Check TLS-RPT record at _smtp._tls.{domain} (RFC 8460).
+ * Presence means the domain monitors TLS failures for inbound mail.
+ */
+export async function checkTlsRpt(domain: string): Promise<TlsRptCheckResult> {
+  try {
+    const response = await queryDoh(`_smtp._tls.${domain}`, TYPE_TXT);
+    const txt = extractTxtRecords(response);
+
+    for (const record of txt) {
+      if (record.toLowerCase().startsWith('v=tlsrptv1')) {
+        return { found: true };
+      }
+    }
+
+    return { found: false };
+  } catch {
+    return { found: false };
+  }
+}
+
+/**
+ * Check DANE TLSA records for MX hosts (RFC 7672).
+ * Looks for _25._tcp.{mx_host} TLSA records. If any MX host has one, the
+ * domain's mail transport uses DANE-verified TLS.
+ */
+export async function checkDaneTlsa(mxRecords: MxRecord[]): Promise<DaneTlsaCheckResult> {
+  if (mxRecords.length === 0) return { found: false };
+
+  try {
+    // Check top 3 MX hosts (by priority) to keep latency bounded
+    const hostsToCheck = mxRecords
+      .slice(0, 3)
+      .map(r => r.host.replace(/\.$/, ''));
+
+    const results = await Promise.all(
+      hostsToCheck.map(async (host) => {
+        try {
+          const response = await queryDoh(`_25._tcp.${host}`, TYPE_TLSA);
+          return (response.Answer ?? []).some(a => a.type === TYPE_TLSA);
+        } catch {
+          return false;
+        }
+      })
+    );
+
+    return { found: results.some(Boolean) };
+  } catch {
+    return { found: false };
+  }
+}
+
+/**
+ * Check DNSSEC validation for a domain.
+ * Uses the AD (Authenticated Data) flag from Cloudflare DoH — if set,
+ * the domain's records are DNSSEC-signed and validated.
+ */
+export async function checkDnssec(domain: string): Promise<DnssecCheckResult> {
+  try {
+    // Query the domain's A record and check the AD flag
+    const response = await queryDoh(domain, 1); // TYPE_A = 1
+    return { enabled: response.AD === true };
+  } catch {
+    return { enabled: false };
+  }
+}
+
 // ─── Security grading ───
 
 /**
@@ -186,16 +268,43 @@ export function buildSecurityResult(
   spf: SpfCheckResult,
   bimi: BimiCheckResult,
   mtaSts: MtaStsCheckResult,
+  tlsRpt: TlsRptCheckResult,
+  daneTlsa: DaneTlsaCheckResult,
+  dnssec: DnssecCheckResult,
 ): SecurityResult {
+  const grade = gradeSecurityPosture(dmarc, spf, bimi, mtaSts);
+
+  // Domain maturity tier — coarse gate, not a grade
+  // mature: enforcement + advanced signals
+  // basic: authentication present
+  // minimal: partial authentication
+  // none: nothing
+  const hasEnforcement = dmarc.policy === 'reject' || dmarc.policy === 'quarantine';
+  const hasAdvanced = bimi.found || mtaSts.found || daneTlsa.found || dnssec.enabled;
+  let domainMaturity: 'mature' | 'basic' | 'minimal' | 'none';
+
+  if (hasEnforcement && spf.found && hasAdvanced) {
+    domainMaturity = 'mature';
+  } else if (dmarc.found && spf.found) {
+    domainMaturity = 'basic';
+  } else if (dmarc.found || spf.found) {
+    domainMaturity = 'minimal';
+  } else {
+    domainMaturity = 'none';
+  }
+
   return {
-    grade: gradeSecurityPosture(dmarc, spf, bimi, mtaSts),
+    grade,
     spf: spf.found,
     dkim: false, // Phase 2 — requires probing specific selectors
     dkim_selectors: [],
     dmarc: { found: dmarc.found, policy: dmarc.policy },
     mta_sts: mtaSts.found,
-    tls_rpt: false, // Phase 2
+    tls_rpt: tlsRpt.found,
+    dane_tlsa: daneTlsa.found,
+    dnssec: dnssec.enabled,
     bimi: bimi.found,
+    domain_maturity: domainMaturity,
   };
 }
 

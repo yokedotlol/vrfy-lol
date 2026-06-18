@@ -83,7 +83,11 @@ export interface SecurityResult {
   dmarc: DmarcResult;
   mta_sts: boolean;
   tls_rpt: boolean;
+  dane_tlsa: boolean;
+  dnssec: boolean;
   bimi: boolean;
+  /** Coarse domain maturity gate: mature/basic/minimal/none */
+  domain_maturity: 'mature' | 'basic' | 'minimal' | 'none';
 }
 
 export interface DmarcResult {

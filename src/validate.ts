@@ -21,6 +21,7 @@ import { classifyConfidence } from './validators/confidence';
 import { classifyLocalPart } from './validators/local-part-pattern';
 import {
   checkDmarc, checkSpf, checkBimi, checkMtaSts,
+  checkTlsRpt, checkDaneTlsa, checkDnssec,
   buildSecurityResult,
 } from './validators/dns-security';
 import {
@@ -141,14 +142,16 @@ export async function validateEmail(
     }
 
     // MX lookup (async) + DNS security checks (async, parallel)
-    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult] = options.quick
-      ? [await checkMx(domain), null, null, null, null]
+    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult, tlsRptResult, dnssecResult] = options.quick
+      ? [await checkMx(domain), null, null, null, null, null, null]
       : await Promise.all([
           checkMx(domain),
           checkDmarc(domain),
           checkSpf(domain),
           checkBimi(domain),
           checkMtaSts(domain),
+          checkTlsRpt(domain),
+          checkDnssec(domain),
         ]);
 
     mx = mxResult;
@@ -163,9 +166,17 @@ export async function validateEmail(
       provider = { ...provider, is_free: true };
     }
 
+    // DANE TLSA needs MX hosts, so run after MX resolves
+    const daneTlsaResult = (!options.quick && mx.has_mx)
+      ? await checkDaneTlsa(mx.mx_records)
+      : { found: false };
+
     // Build security result if we ran the checks
-    if (dmarcResult && spfResult && bimiResult && mtaStsResult) {
-      security = buildSecurityResult(dmarcResult, spfResult, bimiResult, mtaStsResult);
+    if (dmarcResult && spfResult && bimiResult && mtaStsResult && tlsRptResult && dnssecResult) {
+      security = buildSecurityResult(
+        dmarcResult, spfResult, bimiResult, mtaStsResult,
+        tlsRptResult, daneTlsaResult, dnssecResult,
+      );
     }
 
     // Domain heuristics (sync, instant)
@@ -428,12 +439,15 @@ function countSignals(
   total++;
   if (!subaddressIsSubaddressed) positive++;
 
-  // Security signals (Phase 1)
+  // Security signals
   if (security) {
     total++; if (security.spf) positive++;              // SPF present
     total++; if (security.dmarc.found) positive++;      // DMARC present
     total++; if (security.bimi) positive++;             // BIMI present
     total++; if (security.mta_sts) positive++;          // MTA-STS present
+    total++; if (security.tls_rpt) positive++;          // TLS-RPT present
+    total++; if (security.dane_tlsa) positive++;        // DANE TLSA present
+    total++; if (security.dnssec) positive++;           // DNSSEC enabled
     // Security grade as a signal: A or better = positive
     total++;
     if (security.grade === 'A' || security.grade === 'A+') positive++;
@@ -455,12 +469,12 @@ function countSignals(
   if (extendedScore !== null) {
     // The extended plugin checked N signals internally — we report
     // a fixed count since the plugin is opaque
-    total += 12; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase, libravatar, gitlab, microsoft, emailrep, wkd, openpgpkey_dns
+    total += 13; // extended plugin: gravatar, github, xon, webfinger, pgp, keybase, libravatar, gitlab, microsoft, emailrep, wkd, openpgpkey_dns, smimea
     // Map opaque score to positive signal count proportionally
-    // Max soft-OR score with 12 signals ≈ 0.970, so scale accordingly
-    const maxScore = 0.970;
-    const extPositive = Math.round((extendedScore / maxScore) * 12);
-    positive += Math.min(extPositive, 12);
+    // Max soft-OR score with 13 signals ≈ 0.976, so scale accordingly
+    const maxScore = 0.976;
+    const extPositive = Math.round((extendedScore / maxScore) * 13);
+    positive += Math.min(extPositive, 13);
   }
 
   return { total, positive };
@@ -559,6 +573,10 @@ function buildResponse(
     // No SPF + no DMARC → reduce confidence slightly
     if (!security.spf && !security.dmarc.found && confidence === 'valid') {
       confidence = 'likely_valid';
+    }
+    // Immature domain → bump toward verify
+    if (security.domain_maturity === 'none' && action === 'allow') {
+      action = 'verify';
     }
   }
 
