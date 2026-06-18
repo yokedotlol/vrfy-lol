@@ -849,6 +849,22 @@ function scripts(nonce: string): string {
       html += detailCard('BIMI', sec.bimi ? 'Present' : 'None', sec.bimi ? 'good' : 'info');
       html += detailCard('MTA-STS', sec.mta_sts ? 'Present' : 'None', sec.mta_sts ? 'good' : 'info');
       html += detailCard('TLS-RPT', sec.tls_rpt ? 'Present' : 'None', sec.tls_rpt ? 'good' : 'info');
+      // Domain age
+      if (sec.domain_age && sec.domain_age.registered) {
+        var ageLabel = sec.domain_age.age_days !== null ? (sec.domain_age.age_days + ' days') : 'Unknown';
+        var ageStatus = sec.domain_age.is_new ? 'bad' : 'good';
+        html += detailCard('Domain Age', ageLabel, ageStatus);
+        html += detailCard('Registered', escHtml(sec.domain_age.registered), 'info');
+      }
+      // SRV services
+      if (sec.services && sec.services.total_found > 0) {
+        var svcParts = [];
+        if (sec.services.submission) svcParts.push('SMTP Submit');
+        if (sec.services.imap) svcParts.push('IMAP');
+        if (sec.services.jmap) svcParts.push('JMAP');
+        if (sec.services.autodiscover) svcParts.push('Autodiscover');
+        html += detailCard('Mail Services', svcParts.join(', '), 'good');
+      }
       html += '</div>';
     }
 
@@ -861,6 +877,8 @@ function scripts(nonce: string): string {
       if (h.risky_tld) html += detailCard('Risky TLD', 'Yes', 'bad');
       html += detailCard('MX Class', escHtml(h.mx_provider_class), h.mx_provider_class === 'unknown' ? 'warn' : 'info');
       if (h.mx_security_gateway) html += detailCard('Security Gateway', escHtml(h.mx_security_gateway), 'info');
+      if (h.ns_provider) html += detailCard('DNS Provider', escHtml(h.ns_provider), 'info');
+      if (h.is_subdomain) html += detailCard('Subdomain', escHtml(h.parent_domain || 'Yes') + ' (depth ' + h.subdomain_depth + ')', 'warn');
       html += detailCard('Domain Entropy', h.domain_entropy.toFixed(2), h.entropy_suspicious ? 'bad' : 'good');
       if (h.entropy_suspicious) html += detailCard('Suspicious Entropy', 'Yes', 'bad');
       if (h.spam_trap) html += detailCard('Spam Trap', escHtml(h.spam_trap_pattern || 'Detected'), 'bad');
