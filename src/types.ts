@@ -114,6 +114,11 @@ export interface SecurityResult {
     age_days: number | null;
     is_new: boolean;
   };
+  /** DKIM selectors discovered via probing */
+  dkim_services?: {
+    found: Array<{ selector: string; service: string }>;
+    total_found: number;
+  };
 }
 
 export interface DmarcResult {
@@ -125,7 +130,7 @@ export interface DmarcResult {
 export interface MetaResult {
   signals: number;
   signals_positive: number;
-  /** Security infrastructure depth (0-8): SPF, DMARC, BIMI, MTA-STS, TLS-RPT, DANE, DNSSEC, SRV services */
+  /** Security infrastructure depth (0-9): SPF, DMARC, BIMI, MTA-STS, TLS-RPT, DANE, DNSSEC, SRV services, DKIM services */
   pki_depth?: number;
   /** Identity/presence breadth from extended validation (count of confirmed identities) */
   identity_breadth?: number;

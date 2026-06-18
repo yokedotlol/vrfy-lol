@@ -279,6 +279,88 @@ interface RdapResponse {
   }>;
 }
 
+// ─── DKIM selector probing ───
+// Probe common DKIM selectors to discover what services the domain uses for sending email.
+// Finding DKIM records proves the domain actively sends email through specific services.
+
+const TYPE_TXT = 16;
+
+export interface DkimSelectorResult {
+  /** Which selectors had DKIM records */
+  found: Array<{ selector: string; service: string }>;
+  /** Number of DKIM selectors found */
+  total_found: number;
+  /** Number of selectors probed */
+  probed: number;
+}
+
+const DKIM_SELECTORS: Array<{ selector: string; service: string }> = [
+  // Major providers
+  { selector: 'google', service: 'Google Workspace' },
+  { selector: 'selector1', service: 'Microsoft 365' },
+  { selector: 'selector2', service: 'Microsoft 365' },
+  { selector: 'default', service: 'Generic' },
+  { selector: 'k1', service: 'Mailchimp' },
+  { selector: 's1', service: 'Generic/Postmark' },
+  { selector: 's2', service: 'Generic/Postmark' },
+  // Transactional / marketing
+  { selector: 'mandrill', service: 'Mandrill (Mailchimp)' },
+  { selector: 'cm', service: 'Campaign Monitor' },
+  { selector: 'smtp', service: 'SendGrid' },
+  { selector: 'smtpapi', service: 'SendGrid' },
+  { selector: 'mailo', service: 'Mailgun' },
+  { selector: 'mesmtp', service: 'Mailgun' },
+  { selector: 'ses', service: 'Amazon SES' },
+  { selector: 'zendesk1', service: 'Zendesk' },
+  { selector: 'zendesk2', service: 'Zendesk' },
+  { selector: 'fm1', service: 'Fastmail' },
+  { selector: 'fm2', service: 'Fastmail' },
+  { selector: 'fm3', service: 'Fastmail' },
+  { selector: 'protonmail', service: 'Proton Mail' },
+  { selector: 'protonmail2', service: 'Proton Mail' },
+  { selector: 'protonmail3', service: 'Proton Mail' },
+  { selector: 'mxvault', service: 'Mimecast' },
+  { selector: 'hse1', service: 'HubSpot' },
+  { selector: 'hse2', service: 'HubSpot' },
+  { selector: 'dkim', service: 'Generic' },
+  { selector: 'mail', service: 'Generic' },
+  { selector: 'zoho', service: 'Zoho' },
+  { selector: 'turbo-smtp', service: 'TurboSMTP' },
+  { selector: 'everlytickey1', service: 'Everlytic' },
+  { selector: 'customekey1', service: 'Customer.io' },
+];
+
+export async function probeDkimSelectors(domain: string): Promise<DkimSelectorResult> {
+  const queries = DKIM_SELECTORS.map(async ({ selector, service }) => {
+    try {
+      const resp = await queryDoh(`${selector}._domainkey.${domain}`, TYPE_TXT);
+      const hasDkim = resp.Answer?.some(a =>
+        a.type === TYPE_TXT && a.data.toLowerCase().includes('v=dkim1')
+      ) ?? false;
+      return hasDkim ? { selector, service } : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const results = await Promise.all(queries);
+  const found = results.filter((r): r is { selector: string; service: string } => r !== null);
+
+  // Deduplicate services (e.g., selector1+selector2 → one Microsoft 365 entry)
+  const uniqueServices = new Map<string, { selector: string; service: string }>();
+  for (const f of found) {
+    if (!uniqueServices.has(f.service)) {
+      uniqueServices.set(f.service, f);
+    }
+  }
+
+  return {
+    found: Array.from(uniqueServices.values()),
+    total_found: uniqueServices.size,
+    probed: DKIM_SELECTORS.length,
+  };
+}
+
 // ─── DoH helper ───
 
 async function queryDoh(name: string, type: number): Promise<{ Status: number; Answer?: Array<{ type: number; data: string }> }> {

@@ -31,7 +31,7 @@ import {
   fingerprintMx, isSelfHostedMx,
 } from './validators/mx-fingerprint';
 import {
-  checkDnsServices, detectNsProvider, detectSubdomain, checkDomainAge,
+  checkDnsServices, detectNsProvider, detectSubdomain, checkDomainAge, probeDkimSelectors,
 } from './validators/dns-services';
 
 const VERSION = '1.0.0';
@@ -164,8 +164,8 @@ export async function validateEmail(
     }
 
     // MX lookup (async) + DNS security checks (async, parallel)
-    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult, tlsRptResult, dnssecResult, srvResult, nsResult, domainAgeResult] = options.quick
-      ? [await checkMx(domain), null, null, null, null, null, null, null, null, null]
+    const [mxResult, dmarcResult, spfResult, bimiResult, mtaStsResult, tlsRptResult, dnssecResult, srvResult, nsResult, domainAgeResult, dkimResult] = options.quick
+      ? [await checkMx(domain), null, null, null, null, null, null, null, null, null, null]
       : await Promise.all([
           checkMx(domain),
           checkDmarc(domain),
@@ -177,6 +177,7 @@ export async function validateEmail(
           checkDnsServices(domain),
           detectNsProvider(domain),
           checkDomainAge(domain),
+          probeDkimSelectors(domain),
         ]);
 
     mx = mxResult;
@@ -224,6 +225,13 @@ export async function validateEmail(
           registered: domainAgeResult.registered,
           age_days: domainAgeResult.age_days,
           is_new: domainAgeResult.is_new,
+        };
+      }
+      // Attach DKIM selector probing results
+      if (dkimResult && dkimResult.total_found > 0) {
+        security.dkim_services = {
+          found: dkimResult.found,
+          total_found: dkimResult.total_found,
         };
       }
     }
@@ -525,13 +533,16 @@ function countSignals(
     total++; if (heuristics.ns_provider !== null) positive++; // NS provider identified
   }
 
-  // Security sub-signals (services + domain age)
+  // Security sub-signals (services + domain age + DKIM probing)
   if (security?.services) {
     total++; if (security.services.submission) positive++; // SMTP submission SRV
     total++; if (security.services.imap) positive++;       // IMAP SRV
   }
   if (security?.domain_age) {
     total++; if (!security.domain_age.is_new) positive++;  // not a brand-new domain
+  }
+  if (security?.dkim_services) {
+    total++; if (security.dkim_services.total_found > 0) positive++; // DKIM selectors confirmed
   }
 
   // Local-part pattern signal
@@ -728,6 +739,7 @@ function buildResponse(
     if (security.dane_tlsa) pkiDepth++;
     if (security.dnssec) pkiDepth++;
     if (security.services && security.services.total_found > 0) pkiDepth++;
+    if (security.dkim_services && security.dkim_services.total_found > 0) pkiDepth++;
   }
 
   // Identity breadth: count of confirmed identity signals from extended validation

@@ -866,6 +866,11 @@ function scripts(nonce: string): string {
         if (sec.services.autodiscover) svcParts.push('Autodiscover');
         html += detailCard('Mail Services', svcParts.join(', '), 'good');
       }
+      // DKIM services discovered
+      if (sec.dkim_services && sec.dkim_services.total_found > 0) {
+        var dkimSvcs = sec.dkim_services.found.map(function(f) { return f.service; }).join(', ');
+        html += detailCard('DKIM Senders', dkimSvcs, 'good');
+      }
       html += '</div>';
     }
 
@@ -894,7 +899,7 @@ function scripts(nonce: string): string {
     html += '<div class="meta-bar">';
     html += '<span>⏱ ' + d._meta.query_ms + 'ms</span>';
     html += '<span>' + d._meta.signals_positive + '/' + d._meta.signals + ' signals positive</span>';
-    if (d._meta.pki_depth !== undefined) html += '<span>🛡 PKI ' + d._meta.pki_depth + '/8</span>';
+    if (d._meta.pki_depth !== undefined) html += '<span>🛡 PKI ' + d._meta.pki_depth + '/9</span>';
     if (d._meta.identity_breadth !== undefined && d._meta.identity_breadth > 0) html += '<span>🪪 Identity ' + d._meta.identity_breadth + '</span>';
     html += '<span>v' + escHtml(d._meta.version) + '</span>';
     html += '</div>';
