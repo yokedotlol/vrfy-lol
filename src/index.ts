@@ -2,7 +2,7 @@
 // POST-only for email validation. No emails in URLs.
 //
 // Routes:
-//   POST /           — Validate an email (body: {email, pow?, force?, quick?})
+//   POST /           — Validate an email (body: {email, pow?, force?, quick?, mode?, stream?})
 //   POST /batch      — Validate up to 20 emails
 //   GET  /           — API root (JSON) / SPA landing (HTML)
 //   GET  /about      — About page
@@ -173,7 +173,7 @@ export default {
       // ── POST / — Primary email validation ──
 
       if (path === '/' && method === 'POST') {
-        return handlePost(request, env, corsHeaders);
+        return handlePost(request, env, corsHeaders, _ctx);
       }
 
       // ── POST /batch — Batch validation ──
@@ -214,6 +214,7 @@ async function handlePost(
   request: Request,
   env: Env,
   corsHeaders: Record<string, string>,
+  ctx: ExecutionContext,
 ): Promise<Response> {
   let body: ValidateRequest;
   try {
@@ -228,8 +229,15 @@ async function handlePost(
 
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
   const adminKey = request.headers.get('x-admin-key') || undefined;
+  const quick = body.quick ?? (body.mode === 'quick');
+
+  // ── SSE streaming mode ──
+  if (body.stream) {
+    return handleStreamingValidation(body, ip, adminKey, quick, env, corsHeaders, ctx);
+  }
+
   const options: ValidateOptions = {
-    quick: body.quick ?? false,
+    quick,
     force: body.force ?? false,
     adminKey,
   };
@@ -346,7 +354,7 @@ async function handleBatch(
 
   const adminKey = request.headers.get('x-admin-key') || undefined;
   const options: ValidateOptions = {
-    quick: body.quick ?? false,
+    quick: body.quick ?? (body.mode === 'quick'),
     force: body.force ?? false,
     adminKey,
   };
@@ -355,6 +363,94 @@ async function handleBatch(
   return json(result, 200, {
     ...corsHeaders,
     'X-Vrfy-Version': VERSION,
+  });
+}
+
+// ─── SSE streaming handler ───
+
+async function handleStreamingValidation(
+  body: ValidateRequest,
+  ip: string,
+  adminKey: string | undefined,
+  quick: boolean,
+  env: Env,
+  corsHeaders: Record<string, string>,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  // Rate limit / PoW check BEFORE starting the stream
+  if (body.pow) {
+    const powValid = await verifyPow(body.pow, ip, env.POW_SECRET);
+    if (!powValid) {
+      const challenge = await generateChallenge(ip, env.POW_SECRET);
+      return errorJson(ERRORS.powInvalid(challenge), corsHeaders, {
+        'Retry-After': '0',
+        'X-Pow-Required': 'true',
+      });
+    }
+    const nonceFresh = await checkNonceFresh(
+      env.RATE_LIMITER, ip, body.pow.challenge, body.pow.nonce,
+    );
+    if (!nonceFresh) {
+      const challenge = await generateChallenge(ip, env.POW_SECRET);
+      return errorJson(ERRORS.powInvalid(challenge), corsHeaders, {
+        'Retry-After': '0',
+        'X-Pow-Required': 'true',
+      });
+    }
+  } else {
+    const rateLimit = await checkRateLimit(env.RATE_LIMITER, ip);
+    if (!rateLimit.allowed) {
+      const challenge = await generateChallenge(ip, env.POW_SECRET);
+      return errorJson(ERRORS.rateLimited(challenge), corsHeaders, {
+        'Retry-After': '0',
+        'X-Pow-Required': 'true',
+      });
+    }
+  }
+
+  // Set up SSE stream
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
+
+  const sendEvent = async (event: string, data: unknown) => {
+    try {
+      await writer.write(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+    } catch {
+      // Client disconnected — swallow
+    }
+  };
+
+  const options: ValidateOptions = {
+    quick,
+    force: body.force ?? false,
+    adminKey,
+    onProgress: (event) => sendEvent('progress', event),
+  };
+
+  // Run validation asynchronously, streaming progress
+  const streamWork = (async () => {
+    try {
+      const result = await validateEmail(body.email, env, options);
+      await sendEvent('result', result);
+    } catch {
+      await sendEvent('error', { message: 'Internal validation error' });
+    } finally {
+      try { await writer.close(); } catch { /* already closed */ }
+    }
+  })();
+
+  ctx.waitUntil(streamWork);
+
+  return new Response(readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
+      'X-Vrfy-Version': VERSION,
+      ...SECURITY_HEADERS,
+      ...corsHeaders,
+    },
   });
 }
 

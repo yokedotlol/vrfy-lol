@@ -113,6 +113,10 @@ export interface ValidateRequest {
   force?: boolean;
   /** Tier 1 only, skip enrichment/security */
   quick?: boolean;
+  /** Response mode: 'quick' (Tier 1 only) or 'full' (all signals, default). Alias for quick flag. */
+  mode?: 'quick' | 'full';
+  /** Stream progress events via SSE (text/event-stream) */
+  stream?: boolean;
   /** PoW solution (required after rate limit exceeded) */
   pow?: PowSolution;
 }
@@ -122,6 +126,8 @@ export interface BatchRequest {
   emails: string[];
   force?: boolean;
   quick?: boolean;
+  /** Response mode: 'quick' (Tier 1 only) or 'full' (all signals, default). Alias for quick flag. */
+  mode?: 'quick' | 'full';
   pow?: PowSolution;
 }
 

@@ -35,6 +35,17 @@ const VERSION = '1.0.0';
 const DOMAIN_CACHE_TTL = 604800;   // 7 days in seconds
 const EXTENDED_CACHE_TTL = 2592000; // 30 days in seconds
 
+/** Progress event for SSE streaming */
+export interface ProgressEvent {
+  stage: string;
+  status: 'running' | 'complete' | 'skipped';
+  detail?: string;
+  elapsed_ms: number;
+}
+
+/** Progress callback for SSE streaming */
+export type ProgressCallback = (event: ProgressEvent) => Promise<void>;
+
 export interface ValidateOptions {
   /** Skip enrichment/security (Tier 1 only) */
   quick?: boolean;
@@ -42,6 +53,8 @@ export interface ValidateOptions {
   force?: boolean;
   /** Admin key for signal visibility */
   adminKey?: string;
+  /** Progress callback for SSE streaming */
+  onProgress?: ProgressCallback;
 }
 
 /**
@@ -57,6 +70,9 @@ export async function validateEmail(
 
   // Step 1: Syntax validation (synchronous, instant)
   const syntax = validateSyntax(email);
+
+  // Progress: syntax
+  await options.onProgress?.({ stage: 'syntax', status: 'complete', elapsed_ms: Date.now() - startMs });
 
   if (!syntax.valid || !syntax.domain || !syntax.local_part) {
     // Invalid syntax — return immediately, no DNS needed
@@ -128,6 +144,8 @@ export async function validateEmail(
     privacyRelayService = domainCache.privacy_relay_service;
     security = domainCache.security;
     heuristics = domainCache.heuristics;
+    await options.onProgress?.({ stage: 'dns', status: 'complete', detail: 'cached', elapsed_ms: Date.now() - startMs });
+    await options.onProgress?.({ stage: 'security', status: security ? 'complete' : 'skipped', detail: 'cached', elapsed_ms: Date.now() - startMs });
   } else {
     // Run domain checks — MX is async, rest are sync
     const privacyResult = checkPrivacyRelay(domain);
@@ -159,6 +177,12 @@ export async function validateEmail(
     // Provider detection from MX
     provider = mx.has_mx ? detectProvider(mx.mx_records.map(r => r.host)) : null;
 
+    await options.onProgress?.({
+      stage: 'dns', status: 'complete',
+      detail: mx.has_mx ? `${mx.mx_records.length} MX records` : mx.has_a_fallback ? 'A fallback' : 'no MX',
+      elapsed_ms: Date.now() - startMs,
+    });
+
     // Reconcile provider.is_free with the free-providers list.
     // MX-based detection can't distinguish Gmail from Google Workspace
     // (same MX hosts), so the domain-level free-provider check wins.
@@ -178,6 +202,8 @@ export async function validateEmail(
         tlsRptResult, daneTlsaResult, dnssecResult,
       );
     }
+
+    await options.onProgress?.({ stage: 'security', status: security ? 'complete' : 'skipped', elapsed_ms: Date.now() - startMs });
 
     // Domain heuristics (sync, instant)
     const riskyTld = checkRiskyTld(domain);
@@ -240,7 +266,11 @@ export async function validateEmail(
   // Step 5: Extended validation (if plugin is bound)
   let extendedResult: ExtendedResult | null = null;
   if (env.EXTENDED_VALIDATION && !options.quick) {
+    await options.onProgress?.({ stage: 'extended', status: 'running', elapsed_ms: Date.now() - startMs });
     extendedResult = await callExtendedValidation(env, email, domain);
+    await options.onProgress?.({ stage: 'extended', status: 'complete', elapsed_ms: Date.now() - startMs });
+  } else {
+    await options.onProgress?.({ stage: 'extended', status: 'skipped', elapsed_ms: Date.now() - startMs });
   }
 
   const extendedScore = extendedResult?.score ?? null;
