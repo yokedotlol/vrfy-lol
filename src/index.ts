@@ -26,7 +26,7 @@ const VERSION = '1.0.0';
 const MAX_BATCH_SIZE = 20;
 
 // SPA page paths (GET → HTML)
-const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/cli', '/pow', '/privacy', '/status', '/usage']);
+const SPA_PATHS = new Set(['/', '/about', '/api/docs', '/cli', '/pow', '/privacy', '/status', '/terms', '/usage']);
 
 // Security headers applied to ALL responses
 const SECURITY_HEADERS: Record<string, string> = {
@@ -130,10 +130,10 @@ export default {
             license: 'MIT',
             _meta: {
               family: {
-                yoke: 'https://yoke.lol',
-                certs: 'https://certs.lol',
-                ns: 'https://ns.lol',
-                xhttp: 'https://xhttp.lol',
+                domain: 'https://yoke.lol',
+                tls: 'https://certs.lol',
+                dns: 'https://ns.lol',
+                headers: 'https://xhttp.lol',
               },
               docs: 'https://vrfy.lol/api/docs',
             },

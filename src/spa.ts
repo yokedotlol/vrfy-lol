@@ -14,6 +14,7 @@ export function renderPage(path: string, nonce: string): string {
   if (path === '/about') bodyContent = aboutPage();
   else if (path === '/api/docs') bodyContent = docsPage();
   else if (path === '/privacy') bodyContent = privacyPage();
+  else if (path === '/terms') bodyContent = termsPage();
   else if (path === '/status') bodyContent = statusPage();
   else if (path === '/usage') bodyContent = usagePage();
   else if (path === '/cli') bodyContent = cliPage();
@@ -46,7 +47,7 @@ ${path === '/usage' ? '<meta name="robots" content="noindex, nofollow">\n' : ''}
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Any',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    author: { '@type': 'Organization', name: 'Yoke', url: 'https://yoke.lol' },
+    author: { '@type': 'Organization', name: '.lol tools', url: 'https://yoke.lol/tools' },
   })}</script>
 ${styles()}
 </head>
@@ -86,6 +87,7 @@ function pageTitle(path: string): string {
     case '/about': return 'About — vrfy.lol';
     case '/api/docs': return 'API Docs — vrfy.lol';
     case '/privacy': return 'Privacy — vrfy.lol';
+    case '/terms': return 'Terms of Use — vrfy.lol';
     case '/status': return 'Status — vrfy.lol';
     case '/usage': return 'Usage — vrfy.lol';
     case '/cli': return 'CLI — vrfy.lol';
@@ -960,6 +962,40 @@ function privacyPage(): string {
 </div>`;
 }
 
+function termsPage(): string {
+  return `<div class="content-page">
+<h2>Terms of Use</h2>
+<p>vrfy.lol is a free email validation API. By using it, you agree to the following terms.</p>
+
+<h3>Acceptable use</h3>
+<p>Use the API for legitimate email validation purposes: form submission checks, list hygiene, deliverability assessment. Do not use it to:</p>
+<ul>
+<li>Harvest or enumerate email addresses</li>
+<li>Probe addresses without a legitimate reason to validate them</li>
+<li>Circumvent rate limits or proof-of-work requirements</li>
+<li>Resell raw API output as a competing service</li>
+</ul>
+
+<h3>Rate limits</h3>
+<p>Requests are rate-limited per IP. Proof-of-work challenges may be issued during high traffic. Attempting to bypass these mechanisms may result in temporary or permanent blocking.</p>
+
+<h3>No warranty</h3>
+<p>The service is provided as-is, with no guarantees of accuracy, availability, or fitness for any particular purpose. Email validation is inherently probabilistic — results should inform decisions, not replace them.</p>
+
+<h3>Data handling</h3>
+<p>See our <a href="/privacy">Privacy Policy</a> for details on what data is processed and retained.</p>
+
+<h3>Availability</h3>
+<p>We may modify, rate-limit, or discontinue the service at any time without notice. For guaranteed availability, self-host from the <a href="https://github.com/yokedotlol/vrfy-lol">open-source repo</a>.</p>
+
+<h3>License</h3>
+<p>The vrfy.lol source code is available under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. The service itself (hosted at vrfy.lol) is subject to these terms.</p>
+
+<h3>Contact</h3>
+<p><a href="mailto:hello@yoke.lol">hello@yoke.lol</a></p>
+</div>`;
+}
+
 function statusPage(): string {
   return `<div class="content-page">
 <h2>Service Status</h2>
@@ -1388,6 +1424,7 @@ function footer(): string {
     <a href="/about">About</a>
     <a href="/status">Status</a>
     <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
   </div>
   <div class="footer-tagline">Part of the <a href="https://yoke.lol/tools">.lol tools</a></div>
   <div class="footer-family">
