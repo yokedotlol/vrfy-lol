@@ -359,10 +359,16 @@ async function handleUsageApi(
   env: Env,
   corsHeaders: Record<string, string>,
 ): Promise<Response> {
-  // Auth: require admin key if configured, otherwise allow (pre-secret setup)
-  const adminKey = request.headers.get('x-admin-key');
-  if (env.ADMIN_KEY && adminKey !== env.ADMIN_KEY) {
-    return json({ error: 'unauthorized', message: 'Valid X-Admin-Key header required' }, 401, corsHeaders);
+  // Auth: HTTP Basic Auth (user=admin, pass=ADMIN_KEY)
+  const authHeader = request.headers.get('Authorization');
+  if (env.ADMIN_KEY) {
+    const expected = `Basic ${btoa(`admin:${env.ADMIN_KEY}`)}`;
+    if (!authHeader || authHeader !== expected) {
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: { ...corsHeaders, 'WWW-Authenticate': 'Basic realm="vrfy.lol admin"' },
+      });
+    }
   }
 
   // Read XON stats from shared KV for today + last 7 days
@@ -412,8 +418,10 @@ async function handleUsageApi(
       { name: 'github', weight: 0.30, description: 'GitHub public commit email search' },
       { name: 'xon', weight: 0.25, description: 'XposedOrNot breach database (free, no API key)' },
       { name: 'webfinger', weight: 0.25, description: 'RFC 7033 Webfinger account discovery' },
+      { name: 'gitlab', weight: 0.20, description: 'GitLab public account search' },
       { name: 'pgp', weight: 0.20, description: 'OpenPGP key server lookup' },
       { name: 'keybase', weight: 0.20, description: 'Keybase identity graph (~400K users)' },
+      { name: 'libravatar', weight: 0.15, description: 'Libravatar federated avatar (FOSS/privacy users)' },
     ],
   }, 200, { ...corsHeaders, 'Cache-Control': 'no-cache' });
 }

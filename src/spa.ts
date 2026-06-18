@@ -411,25 +411,11 @@ function scripts(nonce: string): string {
 
   // ── Usage page ──
   function initUsagePage() {
-    var btn = document.getElementById('usageLoadBtn');
-    var input = document.getElementById('adminKeyInput');
-    if (!btn || !input) return;
-
-    // Load saved key
-    var savedKey = localStorage.getItem('vrfy-admin-key');
-    if (savedKey) { input.value = savedKey; loadUsageData(savedKey); }
-
-    btn.addEventListener('click', function() { loadUsageData(input.value); });
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') { e.preventDefault(); loadUsageData(input.value); }
-    });
+    loadUsageData();
   }
 
-  function loadUsageData(key) {
-    var headers = { 'Accept': 'application/json' };
-    if (key) { headers['X-Admin-Key'] = key; localStorage.setItem('vrfy-admin-key', key); }
-
-    fetch('/api/usage', { headers: headers, cache: 'no-store' })
+  function loadUsageData() {
+    fetch('/api/usage', { cache: 'no-store' })
       .then(function(r) {
         if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 ? ' — invalid admin key' : ''));
         return r.json();
@@ -993,21 +979,6 @@ function usagePage(): string {
   return `<div class="content-page">
 <h2>Usage Dashboard</h2>
 
-<div id="usageAuth" style="margin: 1.5rem 0;">
-  <div class="status-info" style="margin-bottom: 1rem;">
-    <div class="status-info-row">
-      <span class="info-label">Admin Key</span>
-      <span class="info-value">
-        <input type="password" id="adminKeyInput" placeholder="X-Admin-Key" autocomplete="off"
-          style="background: var(--bg); border: 1px solid var(--border); color: var(--text-bright);
-                 font-family: var(--font-mono); font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; width: 240px;">
-        <button id="usageLoadBtn" style="background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent);
-                font-family: var(--font-mono); font-size: 0.8rem; padding: 4px 12px; border-radius: 4px; cursor: pointer; margin-left: 4px;">Load</button>
-      </span>
-    </div>
-  </div>
-</div>
-
 <div id="usageContent" style="display: none;">
 
 <h3 style="font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-bright); margin: 1.5rem 0 0.75rem;">
@@ -1092,7 +1063,6 @@ function footer(): string {
     <a href="/api/docs">API</a>
     <a href="/about">About</a>
     <a href="/status">Status</a>
-    <a href="/usage">Usage</a>
     <a href="/privacy">Privacy</a>
   </div>
   <div class="footer-tagline">Part of the <a href="https://yoke.lol/tools">.lol tools</a></div>
