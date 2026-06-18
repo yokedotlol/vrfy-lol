@@ -451,6 +451,8 @@ function scripts(nonce: string): string {
         window.scrollTo(0, 0);
         runStatusCheck();
         initUsagePage();
+      });
+  }
 
   // ── Usage page ──
   function initUsagePage() {
@@ -783,7 +785,7 @@ function landingPage(): string {
   <span class="badge">POST-only</span>
   <span class="badge">No SMTP</span>
   <span class="badge">No tracking</span>
-  <span class="badge">No API keys</span>
+  <span class="badge"><a href="/pow" style="color:inherit;text-decoration:none;">PoW anti-abuse</a></span>
   <span class="badge">Open source</span>
   <span class="badge">$0 forever</span>
 </div>
@@ -854,7 +856,7 @@ function docsPage(): string {
 <tr><td><code>email</code></td><td>string</td><td>Required. Email address to validate.</td></tr>
 <tr><td><code>quick</code></td><td>boolean</td><td>Skip enrichment/security (Tier 1 only). Default false.</td></tr>
 <tr><td><code>force</code></td><td>boolean</td><td>Bypass cache. Default false.</td></tr>
-<tr><td><code>pow</code></td><td>object</td><td>Proof-of-work solution (for unlimited access).</td></tr>
+<tr><td><code>pow</code></td><td>object</td><td>Proof-of-work solution (for unlimited access). <a href="/pow">See protocol →</a></td></tr>
 </table>
 
 <h3>POST /batch</h3>
@@ -907,7 +909,7 @@ function docsPage(): string {
 
 <h2>Rate Limits</h2>
 <p>Free tier: 10 requests/hour + 50/day per IP. Cache hits are exempt.</p>
-<p>Need more? Solve a proof-of-work challenge (SHA-256 hashcash, difficulty 20, ~2–8s CPU) and include the solution in your request. Unlimited with valid PoW.</p>
+<p>Need more? Solve a proof-of-work challenge (SHA-256 hashcash, difficulty 20, ~2–8s CPU) and include the solution in your request. Unlimited with valid PoW. <a href="/pow">Full PoW protocol docs →</a></p>
 
 <h2>Cross-origin</h2>
 <p>Full CORS support. <code>Access-Control-Allow-Origin: *</code> on all responses.</p>
