@@ -26,7 +26,7 @@ export interface PowSolution {
   nonce: string;
 }
 
-const DEFAULT_DIFFICULTY = 18;
+const DEFAULT_DIFFICULTY = 20;
 const BUCKET_SECONDS = 300; // 5-minute buckets
 
 /**

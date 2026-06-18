@@ -823,7 +823,7 @@ function docsPage(): string {
 
 <h2>Rate Limits</h2>
 <p>Free tier: 10 requests/hour + 50/day per IP. Cache hits are exempt.</p>
-<p>Need more? Solve a proof-of-work challenge (SHA-256 hashcash, difficulty 18, ~200ms CPU) and include the solution in your request. Unlimited with valid PoW.</p>
+<p>Need more? Solve a proof-of-work challenge (SHA-256 hashcash, difficulty 20, ~2–8s CPU) and include the solution in your request. Unlimited with valid PoW.</p>
 
 <h2>Cross-origin</h2>
 <p>Full CORS support. <code>Access-Control-Allow-Origin: *</code> on all responses.</p>
