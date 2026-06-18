@@ -24,7 +24,7 @@ export function renderPage(path: string, nonce: string): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<meta name="description" content="${esc(desc)}">
+${path === '/usage' ? '<meta name="robots" content="noindex, nofollow">\n' : ''}<meta name="description" content="${esc(desc)}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:type" content="website">
@@ -852,6 +852,17 @@ function privacyPage(): string {
 <li><strong>Extended validation cache:</strong> Results cached by pseudonymized key (<code>HMAC-SHA256</code>) for 30 days. Raw email addresses are never stored.</li>
 <li><strong>No analytics, no cookies, no accounts.</strong></li>
 </ul>
+
+<h3>Third-party lookups</h3>
+<p>Extended validation checks whether an email address has a public presence on third-party services. When extended validation is requested, the email address may be sent to:</p>
+<ul>
+<li><strong>Gravatar</strong> (gravatar.com) — MD5 hash of the email only</li>
+<li><strong>Libravatar</strong> (libravatar.org) — MD5 hash of the email only</li>
+<li><strong>GitHub</strong> (api.github.com) — email address sent to search API</li>
+<li><strong>GitLab</strong> (gitlab.com) — email address sent to search API</li>
+<li><strong>Have I Been Pwned</strong> (haveibeenpwned.com) — email address sent to breach lookup API</li>
+</ul>
+<p>These lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
 
 <h3>IP addresses</h3>
 <p>IP addresses are used solely for rate limiting and proof-of-work challenge generation. No IP address logs are retained beyond the active rate limiting window.</p>

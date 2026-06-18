@@ -7,7 +7,7 @@
 //   GET  /           — API root (JSON) / SPA landing (HTML)
 //   GET  /about      — About page
 //   GET  /api/docs   — API documentation
-//   GET  /api/usage  — Admin usage stats (requires X-Admin-Key)
+//   GET  /api/usage  — Admin usage stats (requires HTTP Basic Auth)
 //   GET  /privacy    — Privacy policy
 //   GET  /status     — Service status page
 //   GET  /usage      — Usage dashboard (admin SPA)
@@ -138,6 +138,18 @@ export default {
               docs: 'https://vrfy.lol/api/docs',
             },
           }, 200, corsHeaders);
+        }
+
+        // Auth gate for /usage — HTTP Basic Auth
+        if (path === '/usage' && env.ADMIN_KEY) {
+          const authHeader = request.headers.get('Authorization');
+          const expected = `Basic ${btoa(`admin:${env.ADMIN_KEY}`)}`;
+          if (!authHeader || authHeader !== expected) {
+            return new Response('Unauthorized', {
+              status: 401,
+              headers: { ...corsHeaders, 'WWW-Authenticate': 'Basic realm="vrfy.lol admin"' },
+            });
+          }
         }
 
         // Generate a nonce for CSP
@@ -479,7 +491,6 @@ function sitemap(): string {
   <url><loc>https://vrfy.lol/api/docs</loc><lastmod>${now}</lastmod><priority>0.8</priority></url>
   <url><loc>https://vrfy.lol/privacy</loc><lastmod>${now}</lastmod><priority>0.4</priority></url>
   <url><loc>https://vrfy.lol/status</loc><lastmod>${now}</lastmod><priority>0.5</priority></url>
-  <url><loc>https://vrfy.lol/usage</loc><lastmod>${now}</lastmod><priority>0.3</priority></url>
 </urlset>`;
 }
 
