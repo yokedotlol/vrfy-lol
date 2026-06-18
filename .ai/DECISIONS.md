@@ -110,3 +110,35 @@ vrfy.lol registered. Email validation API, part of the .lol family. No SMTP prob
 **What changed:** Removed vrfy-probe from current architecture description. DNSBL queries remain Phase 2 scope.
 **Why:** Phase 1 is DNS-only via DoH from the Worker. The Fly.io probe service was specced for DNSBL lookups which require direct DNS (not DoH). No DNSBL signals are implemented yet.
 **Directive:** Constitution architecture table reflects current state. Probe service is Phase 2 work.
+
+---
+
+### 2026-06-18 — Microsoft GetCredentialType: use directly
+
+**What changed:** Added Microsoft GetCredentialType as an extended signal. No opt-in flag.
+**Why:** It's our backend making individual lookups, not bulk enumeration. Microsoft has called this behavior "by design." Gracefully degrades on throttle (checks ThrottleStatus field). Weight 0.35 — enormous reach (M365 + Outlook/Hotmail/Live).
+**Directive:** Use directly. If Microsoft starts blocking CF Worker IPs, fail open.
+
+---
+
+### 2026-06-18 — EmailRep.io: cache smart, BYO key
+
+**What changed:** Added EmailRep.io as an extended signal with adaptive caching.
+**Why:** Rich aggregated data — reputation, platform profiles, temporal signals. Free tier is 250/month, 10/day. Self-imposed 8/day limit on platform key. Cache TTL scales with data quality (high rep + many profiles = 30 days, low/none = 3 days). BYO key via EMAILREP_KEY env var bypasses daily cap.
+**Directive:** Platform key for basic coverage. BYO key for heavy users. Smart cache TTL.
+
+---
+
+### 2026-06-18 — Spamhaus DBL: deferred, usage tracking ready
+
+**What changed:** Deferred Spamhaus DBL implementation. Usage page must track metrics needed to decide when to switch from free DQS to paid tier (~$250/yr).
+**Why:** No DNSBL signals implemented yet (Phase 2, requires Go probe on Fly). Usage tracking comes first so we have data to justify the spend.
+**Directive:** Don't implement yet. Ensure usage dashboard surfaces API call volume, error rates, and estimated DNSBL query projections.
+
+---
+
+### 2026-06-18 — Holehe-style probing: permanently out of scope
+
+**What changed:** Holehe-style auth flow probing (password-reset/registration endpoint enumeration) confirmed permanently out of scope.
+**Why:** Violates platform ToS, may notify targets, contradicts vrfy's probeless constraint and product identity. The differentiator IS the probeless approach.
+**Directive:** Never add. This is a red line.
