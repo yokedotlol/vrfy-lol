@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Generate disposable domain list
+        run: bun run update-disposable
+
       - name: Type check
         run: bun run typecheck
 
@@ -47,6 +50,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate disposable domain list
+        run: bun run update-disposable
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy

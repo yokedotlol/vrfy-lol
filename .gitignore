@@ -4,3 +4,6 @@ dist/
 .dev.vars
 *.log
 **/__pycache__/
+
+# Generated at build time from upstream sources + fallback
+src/data/disposable.ts
