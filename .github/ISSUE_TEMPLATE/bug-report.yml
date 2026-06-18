@@ -1,0 +1,44 @@
+name: "Bug Report"
+description: Something isn't working correctly in the vrfy.lol API or website.
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. POST to https://vrfy.lol/ with {"email": "user@example.com"}
+        2. Response shows...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area affected
+      options:
+        - API response / validation
+        - PoW / rate limiting
+        - Website (vrfy.lol)
+        - Self-hosting
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Request/response or screenshots
+      description: Paste the curl command and response, or attach screenshots.
+      render: shell
+    validations:
+      required: false

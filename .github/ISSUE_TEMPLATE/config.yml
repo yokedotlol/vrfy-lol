@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "📖 API Documentation"
+    url: https://vrfy.lol/api/docs
+    about: Check the API docs before reporting an issue.
+  - name: "🔒 Privacy Policy"
+    url: https://vrfy.lol/privacy
+    about: Learn how vrfy.lol handles data.

@@ -1,0 +1,38 @@
+name: "False Positive / Incorrect Detection"
+description: vrfy.lol misclassifies a domain or email address (wrong disposable, provider, or action).
+title: "[Detection] "
+labels: ["detection", "triage"]
+body:
+  - type: input
+    id: email-or-domain
+    attributes:
+      label: Email or domain affected
+      placeholder: "user@example.com or example.com"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-vrfy-says
+    attributes:
+      label: What vrfy.lol reported
+      description: Paste the relevant part of the API response.
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-is-correct
+    attributes:
+      label: What should the result be?
+      description: Explain why the detection is wrong and what the correct result should be.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: MX records, provider info, or anything that supports the correction.
+      render: shell
+    validations:
+      required: false

@@ -1,0 +1,42 @@
+name: "Feature Request"
+description: Suggest a new signal, feature, or improvement for vrfy.lol.
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: What kind of request?
+      options:
+        - New validation signal
+        - API enhancement
+        - Privacy improvement
+        - Documentation
+        - Self-hosting / DX
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the feature
+      description: What would you like vrfy.lol to do? Be as specific as possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why is this valuable?
+      description: Who benefits and how?
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to specs, RFCs, docs, or examples.
+    validations:
+      required: false
