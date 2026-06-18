@@ -72,6 +72,10 @@ ${styles()}
     </form>
     <span class="cur" aria-hidden="true"></span>
   </div>
+  <div class="mode-toggle">
+    <button class="mode-opt active" data-m="full">Full</button>
+    <button class="mode-opt" data-m="quick">Quick</button>
+  </div>
   <main id="main" role="main">
     ${bodyContent}
   </main>
@@ -137,6 +141,32 @@ body {
   background: transparent; color: var(--text-muted); transition: all .15s;
 }
 .theme-opt.active { background: var(--accent-dim); color: var(--accent); }
+.mode-toggle {
+  display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 2px; margin-bottom: 1.5rem; width: fit-content;
+}
+.mode-opt {
+  font-family: var(--font-mono); font-size: 11px; padding: 3px 10px;
+  border: none; border-radius: 4px; cursor: pointer;
+  background: transparent; color: var(--text-muted); transition: all .15s;
+}
+.mode-opt.active { background: var(--accent-dim); color: var(--accent); }
+.progress-bar {
+  margin-bottom: 1rem;
+}
+.progress-stages {
+  display: flex; gap: 2px; margin-bottom: 0.5rem;
+}
+.progress-stage {
+  flex: 1; height: 4px; border-radius: 2px;
+  background: var(--border); transition: background .3s;
+}
+.progress-stage.done { background: var(--accent); }
+.progress-stage.active { background: var(--accent); animation: pulse-bar 0.8s ease-in-out infinite; }
+.progress-label {
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
+}
+@keyframes pulse-bar { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 .page { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
 .hdr { margin-bottom: 1.5rem; }
 .logo {
@@ -430,6 +460,19 @@ function scripts(nonce: string): string {
   });
 
   // Client-side nav for static pages
+  var vrfyMode = localStorage.getItem('vrfy-mode') || 'full';
+  document.querySelectorAll('.mode-opt').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.m === vrfyMode);
+    btn.addEventListener('click', function() {
+      vrfyMode = this.dataset.m;
+      localStorage.setItem('vrfy-mode', vrfyMode);
+      document.querySelectorAll('.mode-opt').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.m === vrfyMode);
+      });
+    });
+  });
+
+  // Client-side nav for static pages
   document.addEventListener('click', function(e) {
     var a = e.target.closest('a[href]');
     if (!a) return;
@@ -627,12 +670,70 @@ function scripts(nonce: string): string {
     if (!email) return;
 
     var main = document.getElementById('main');
+    var isQuick = vrfyMode === 'quick';
+
+    if (!isQuick) {
+      // SSE streaming for full mode
+      main.innerHTML = progressHtml('syntax') + '<div class="result-loading">validating ' + escHtml(email) + '…</div>';
+      var es = new EventSource('about:blank'); // placeholder, we use fetch
+      var resultData = null;
+
+      fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, mode: 'full', stream: true })
+      }).then(function(r) {
+        if (!r.ok) return r.text().then(function(t) { try { throw JSON.parse(t); } catch(e) { throw e; } });
+        var reader = r.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
+
+        function pump() {
+          return reader.read().then(function(chunk) {
+            if (chunk.done) {
+              if (resultData) {
+                main.innerHTML = renderResult(resultData);
+                bindResultEvents(resultData);
+              }
+              return;
+            }
+            buffer += decoder.decode(chunk.value, { stream: true });
+            var lines = buffer.split('\\n');
+            buffer = lines.pop();
+            var eventType = '';
+            for (var i = 0; i < lines.length; i++) {
+              var line = lines[i];
+              if (line.startsWith('event: ')) eventType = line.slice(7);
+              else if (line.startsWith('data: ')) {
+                var payload = JSON.parse(line.slice(6));
+                if (eventType === 'progress') {
+                  updateProgress(main, payload);
+                } else if (eventType === 'result') {
+                  resultData = payload;
+                } else if (eventType === 'error') {
+                  main.innerHTML = '<div class="result-error">' + escHtml(payload.message || 'Error') + '</div>';
+                  return;
+                }
+              }
+            }
+            return pump();
+          });
+        }
+        return pump();
+      }).catch(function(err) {
+        var msg = err.message || err.error || 'Something went wrong';
+        main.innerHTML = '<div class="result-error">' + escHtml(msg) + '</div>';
+      });
+      return;
+    }
+
+    // Quick mode — standard JSON
     main.innerHTML = '<div class="result-loading">validating ' + escHtml(email) + '…</div>';
 
     fetch('/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email: email })
+      body: JSON.stringify({ email: email, mode: 'quick' })
     })
     .then(function(r) {
       if (!r.ok) return r.json().then(function(e) { throw e; });
@@ -646,6 +747,47 @@ function scripts(nonce: string): string {
       var msg = err.message || err.error || 'Something went wrong';
       main.innerHTML = '<div class="result-error">' + escHtml(msg) + '</div>';
     });
+  }
+
+  var STAGE_ORDER = ['syntax', 'dns', 'security', 'extended'];
+  var STAGE_LABELS = { syntax: 'Syntax', dns: 'DNS', security: 'Security', extended: 'Extended' };
+
+  function progressHtml(activeStage) {
+    var html = '<div class="progress-bar"><div class="progress-stages">';
+    for (var i = 0; i < STAGE_ORDER.length; i++) {
+      var s = STAGE_ORDER[i];
+      var cls = s === activeStage ? 'active' : '';
+      html += '<div class="progress-stage ' + cls + '" data-stage="' + s + '"></div>';
+    }
+    html += '</div><div class="progress-label" id="progressLabel">' + escHtml(STAGE_LABELS[activeStage] || activeStage) + '…</div></div>';
+    return html;
+  }
+
+  function updateProgress(main, ev) {
+    var label = document.getElementById('progressLabel');
+    var stageIdx = STAGE_ORDER.indexOf(ev.stage);
+    // Mark completed/skipped stages
+    for (var i = 0; i <= stageIdx; i++) {
+      var el = main.querySelector('[data-stage="' + STAGE_ORDER[i] + '"]');
+      if (el) {
+        el.className = 'progress-stage ' + (i < stageIdx ? 'done' : (ev.status === 'complete' || ev.status === 'skipped' ? 'done' : 'active'));
+      }
+    }
+    if (label) {
+      var detail = ev.detail ? ' (' + ev.detail + ')' : '';
+      if (ev.status === 'running') {
+        label.textContent = (STAGE_LABELS[ev.stage] || ev.stage) + '…';
+      } else if (ev.status === 'skipped') {
+        label.textContent = (STAGE_LABELS[ev.stage] || ev.stage) + ' skipped';
+      } else {
+        var nextIdx = stageIdx + 1;
+        if (nextIdx < STAGE_ORDER.length) {
+          label.textContent = (STAGE_LABELS[STAGE_ORDER[nextIdx]] || STAGE_ORDER[nextIdx]) + '…';
+        } else {
+          label.textContent = 'Assembling results…';
+        }
+      }
+    }
   }
 
   function escHtml(s) {
@@ -733,7 +875,6 @@ function scripts(nonce: string): string {
     html += '<div class="meta-bar">';
     html += '<span>⏱ ' + d._meta.query_ms + 'ms</span>';
     html += '<span>' + d._meta.signals_positive + '/' + d._meta.signals + ' signals positive</span>';
-    if (d._meta.cached) html += '<span>cached</span>';
     html += '<span>v' + escHtml(d._meta.version) + '</span>';
     html += '</div>';
 

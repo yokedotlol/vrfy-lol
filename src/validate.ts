@@ -283,6 +283,7 @@ export async function validateEmail(
     extendedScore, security, emailHeuristics,
     localPartPattern,
     isAdmin ? extendedResult?.signals : undefined,
+    isAdmin,
   );
 }
 
@@ -532,6 +533,7 @@ function buildResponse(
   heuristics: HeuristicResult | null,
   localPartPattern: ReturnType<typeof classifyLocalPart> | null,
   adminSignals?: Record<string, boolean>,
+  isAdmin?: boolean,
 ): VrfyResponse {
   const effectiveMx: MxResult = mx ?? {
     has_mx: false,
@@ -664,7 +666,7 @@ function buildResponse(
     _meta: {
       signals: signals.total,
       signals_positive: signals.positive,
-      cached,
+      ...(isAdmin ? { cached } : {}),
       query_ms: Date.now() - startMs,
       version: VERSION,
     },

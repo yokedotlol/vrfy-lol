@@ -99,7 +99,8 @@ export interface DmarcResult {
 export interface MetaResult {
   signals: number;
   signals_positive: number;
-  cached: boolean;
+  /** Only present with admin key — omitted from public responses to avoid cache oracle */
+  cached?: boolean;
   query_ms: number;
   version: string;
 }
