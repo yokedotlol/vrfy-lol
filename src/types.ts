@@ -105,8 +105,6 @@ export interface ValidateRequest {
   force?: boolean;
   /** Tier 1 only, skip enrichment/security */
   quick?: boolean;
-  /** Full DKIM probing */
-  dkim?: 'full';
   /** PoW solution (required after rate limit exceeded) */
   pow?: PowSolution;
 }

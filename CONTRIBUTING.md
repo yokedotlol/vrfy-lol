@@ -20,15 +20,14 @@ Open a GitHub issue with:
 2. Make your changes — keep PRs focused on a single concern.
 3. Run the checks before committing:
    ```bash
-   npx tsc --noEmit          # typecheck
-   npx @biomejs/biome check . # lint + format
+   bun run typecheck   # tsc --noEmit
+   bun test            # unit tests
    ```
 4. Open a PR against `main` with a clear description of what and why.
 
 ## Code Style
 
 - **TypeScript** — strict mode, no `any` where avoidable.
-- **Biome** — formatting and linting. Run `npx @biomejs/biome check --write .` to auto-fix.
 - No runtime dependencies beyond the Cloudflare Workers platform.
 
 ## Data Updates

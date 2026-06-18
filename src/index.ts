@@ -231,7 +231,6 @@ async function handlePost(
   const options: ValidateOptions = {
     quick: body.quick ?? false,
     force: body.force ?? false,
-    dkim: body.dkim,
     adminKey,
   };
 
@@ -491,7 +490,6 @@ function sitemap(): string {
   <url><loc>https://vrfy.lol/api/docs</loc><lastmod>${now}</lastmod><priority>0.8</priority></url>
   <url><loc>https://vrfy.lol/privacy</loc><lastmod>${now}</lastmod><priority>0.4</priority></url>
   <url><loc>https://vrfy.lol/status</loc><lastmod>${now}</lastmod><priority>0.5</priority></url>
-  <url><loc>https://vrfy.lol/usage</loc><lastmod>${now}</lastmod><priority>0.4</priority></url>
 </urlset>`;
 }
 

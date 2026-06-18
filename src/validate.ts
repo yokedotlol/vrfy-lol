@@ -1,6 +1,6 @@
 // ─── Main validation orchestrator (v1.0) ───
 // Wires all validators together. POST-only for email validation.
-// Options (force, quick, dkim) come from request body, not query params.
+// Options (force, quick) come from request body, not query params.
 
 import type {
   VrfyResponse, ValidationResult, MxResult,
@@ -38,8 +38,6 @@ export interface ValidateOptions {
   quick?: boolean;
   /** Bypass KV cache */
   force?: boolean;
-  /** Full DKIM probing */
-  dkim?: 'full';
   /** Admin key for signal visibility */
   adminKey?: string;
 }

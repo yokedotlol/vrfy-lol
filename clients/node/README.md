@@ -4,11 +4,7 @@ Email validation client for [vrfy.lol](https://vrfy.lol) — no SMTP probes, no 
 
 Automatically solves proof-of-work challenges when rate-limited. Zero configuration.
 
-## Install
-
-```bash
-npm install @yokedotlol/vrfy
-```
+> **Not yet published on npm.** Use by cloning the repo and importing directly.
 
 ## Library Usage
 
@@ -54,36 +50,9 @@ const result = await validate('user@example.com', {
 });
 ```
 
-## CLI Usage
-
-```bash
-# Validate an email
-npx @yokedotlol/vrfy user@example.com
-
-# Multiple emails
-npx @yokedotlol/vrfy alice@gmail.com bob@company.com
-
-# JSON output
-npx @yokedotlol/vrfy --json user@example.com
-
-# From file
-npx @yokedotlol/vrfy --batch emails.txt
-
-# From stdin
-echo "user@example.com" | npx @yokedotlol/vrfy -
-```
-
-### Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | `allow` — email looks good |
-| 1 | `block` — invalid/disposable/no MX |
-| 2 | `verify` — send a verification email |
-
 ## How It Works
 
-When the free rate limit is exceeded (10/hour + 50/day per IP), the API returns a proof-of-work challenge. This client solves it automatically using SHA-256 hashcash (~200ms on modern hardware). No API keys, no accounts, no billing.
+When the free rate limit is exceeded (10/hour + 50/day per IP), the API returns a proof-of-work challenge. This client solves it automatically using SHA-256 hashcash. No API keys, no accounts, no billing.
 
 ## License
 

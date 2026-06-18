@@ -755,7 +755,7 @@ function aboutPage(): string {
 <p><a href="https://github.com/yokedotlol/vrfy-lol">github.com/yokedotlol/vrfy-lol</a></p>
 
 <h2>Contact</h2>
-<p><a href="mailto:hello@vrfy.lol">hello@vrfy.lol</a></p>
+<p><a href="mailto:hello@yoke.lol">hello@yoke.lol</a></p>
 </div>`;
 }
 
@@ -878,7 +878,7 @@ function privacyPage(): string {
 <p>For full control, fork the repo and run your own instance: <code>wrangler deploy</code>.</p>
 
 <h3>Contact</h3>
-<p><a href="mailto:hello@vrfy.lol">hello@vrfy.lol</a></p>
+<p><a href="mailto:hello@yoke.lol">hello@yoke.lol</a></p>
 </div>`;
 }
 
