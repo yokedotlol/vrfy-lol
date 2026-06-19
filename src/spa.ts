@@ -1118,6 +1118,10 @@ function privacyPage(): string {
 </ul>
 <p>The specific services queried are part of the closed-source extended validation module. All lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
 
+<h3>Legal basis</h3>
+<p>Third-party lookups for extended validation are performed under legitimate interest (GDPR Article 6(1)(f)) for email fraud prevention. Only the minimum data required by each service is transmitted — a cryptographic hash where supported, the full address only where the service requires it. No data is retained beyond the active cache window.</p>
+<p>For business use, a Data Processing Agreement (DPA) is available on request — contact <a href="mailto:hello@yoke.lol">hello@yoke.lol</a>.</p>
+
 <h3>IP addresses</h3>
 <p>IP addresses are used solely for rate limiting and proof-of-work challenge generation. No IP address logs are retained beyond the active rate limiting window.</p>
 
