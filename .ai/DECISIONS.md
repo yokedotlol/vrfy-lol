@@ -10,11 +10,11 @@ vrfy.lol registered. Email validation API, part of the .lol family. No SMTP prob
 
 ---
 
-### 2026-06-13 — No CLI
+### 2026-06-13 — No CLI (revised 2026-06-18)
 
-**What changed:** Removed CLI from scope entirely.
-**Why:** Domain security audit is Yoke's job. Nobody runs email validation assertions in CI. No real user constituency for terminal email validation.
-**Directive:** Do not add a CLI. The product is a hosted API + SPA.
+**What changed:** Originally removed CLI from scope. CLI clients were later added as lightweight API wrappers (Go client + Homebrew formula `yokedotlol/tap/vrfy`), plus Node and Python clients.
+**Why:** The hosted API + SPA remains the primary product. CLI clients wrap the API for scripting and CI integration — they don't duplicate the validation engine.
+**Directive:** CLI clients are API consumers only. No standalone validation logic in the CLI.
 
 ---
 

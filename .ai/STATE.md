@@ -66,7 +66,7 @@
 | Resource | Details |
 |----------|---------|
 | Domain | vrfy.lol |
-| GitHub | yokedotlol/vrfy-lol (private until launch) |
+| GitHub | yokedotlol/vrfy-lol (public) |
 | Zone ID | `17c5e0dd21faa482187d027435914a45` |
 | KV namespace | `d0c2357c7b5a4a2fb6c434f0425e5f78` (binding: `CACHE`) |
 | DO class | `RateLimiterDO` (migration tag: `v1`) |
@@ -140,7 +140,7 @@ Score is computed as soft-OR across weighted signals. Max theoretical ≈ 0.976.
 ## Open / Known Issues
 
 - No TODO/FIXME/HACK comments in codebase (clean)
-- Repo is private — needs to be flipped public at launch
+- Package version (0.1.0) intentionally differs from service version (1.0.0) — Worker package is private
 - Phase 2 (Fly.io probe for DNSBL) not started
 - Spamhaus DBL deferred pending usage data to justify spend
 - EmailRep.io free tier cap (250/month, 10/day) — platform key self-limits at 8/day

@@ -132,6 +132,9 @@ git clone https://github.com/yokedotlol/vrfy-lol.git
 cd vrfy-lol
 bun install
 
+# Generate disposable domain list (required before first deploy/typecheck)
+bun run generate
+
 # Set secrets
 openssl rand -hex 32 | npx wrangler secret put CACHE_SECRET
 openssl rand -hex 32 | npx wrangler secret put POW_SECRET

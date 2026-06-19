@@ -1111,14 +1111,12 @@ function privacyPage(): string {
 </ul>
 
 <h3>Third-party lookups</h3>
-<p>Extended validation checks whether an email address has a public presence on third-party services. When extended validation is requested, the email address may be sent to:</p>
+<p>Extended validation checks whether an email address has a public presence across identity, cryptographic key, and reputation services. When extended validation is requested, the email address (or a one-way hash of it) may be sent to third-party APIs for lookup.</p>
 <ul>
-<li><strong>Gravatar</strong> (gravatar.com) — MD5 hash of the email only</li>
-<li><strong>Have I Been Pwned</strong> (haveibeenpwned.com) — email address sent to breach lookup API</li>
-<li><strong>Webfinger</strong> (target domain) — RFC 7033 discovery query to the email's domain</li>
-<li><strong>OpenPGP</strong> (keys.openpgp.org) — email address sent to key lookup API</li>
+<li><strong>Hash-only services</strong> — some lookups use only a cryptographic hash (MD5 or SHA-256) of the email, never the raw address (e.g., avatar services, DNS-based key discovery).</li>
+<li><strong>Full-address services</strong> — other lookups require the full email address (e.g., key servers, reputation APIs, code hosting platforms, identity directories).</li>
 </ul>
-<p>These lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
+<p>The specific services queried are part of the closed-source extended validation module. All lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
 
 <h3>IP addresses</h3>
 <p>IP addresses are used solely for rate limiting and proof-of-work challenge generation. No IP address logs are retained beyond the active rate limiting window.</p>

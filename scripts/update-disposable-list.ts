@@ -25,7 +25,7 @@ const SOURCES: Source[] = [
   },
   {
     url: 'https://raw.githubusercontent.com/7c/fakefilter/main/txt/data.txt',
-    license: 'MIT',
+    license: 'BSD-3-Clause',
     format: 'lines',
   },
   {

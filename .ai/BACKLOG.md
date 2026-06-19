@@ -10,14 +10,14 @@
 
 ## Launch
 
-- [ ] **Flip repo to public** — currently private, needs to go public at launch
+- [x] **Flip repo to public** — repo is now public
 - [ ] **Staggered launch** — soft launch first, then Show HN (per DECISIONS.md)
 
 ## Known Tech Debt
 
-- [ ] **Rate limit headers incomplete** — `rateLimitHeaders()` is a placeholder in some paths; should return actual X-RateLimit-* headers from DO response
-- [ ] **No test suite** — `bun test` is in package.json scripts but no test files exist yet
-- [ ] **Package version mismatch** — `package.json` says `0.1.0`, git tag is `v1.0.0`
+- [x] **Rate limit headers incomplete** — `rateLimitHeaders()` is a placeholder in some paths; should return actual X-RateLimit-* headers from DO response
+- [x] **No test suite** — tests exist and pass (`bun test`)
+- [ ] **Package version mismatch** — `package.json` says `0.1.0`, git tag is `v1.0.0` (intentional: Worker package is private)
 
 ## Future Signals
 
@@ -28,4 +28,4 @@
 ## Infrastructure
 
 - [ ] **Usage dashboard** — track API call volume, error rates, DNSBL query projections (needed before Spamhaus decision)
-- [ ] **CI pipeline** — GitHub Actions for typecheck + deploy (exists for CLI release, not for Worker yet)
+- [x] **CI pipeline** — GitHub Actions workflow exists (`.github/workflows/deploy.yml`) for typecheck + deploy

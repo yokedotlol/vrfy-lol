@@ -9,7 +9,7 @@ The disposable domain list (`src/data/disposable.ts`) is auto-generated from mul
 | Source | License | URL |
 |--------|---------|-----|
 | disposable-email-domains | CC0 | https://github.com/disposable-email-domains/disposable-email-domains |
-| FakeFilter | MIT | https://github.com/7c/fakefilter |
+| FakeFilter | BSD-3-Clause | https://github.com/7c/fakefilter |
 | burner-email-providers | ISC | https://github.com/wesbos/burner-email-providers |
 | disposable-email-domains (ivolo) | MIT | https://github.com/ivolo/disposable-email-domains |
 
