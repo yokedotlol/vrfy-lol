@@ -29,10 +29,11 @@ vrfy.lol is part of a family of developer utilities that share the same ethos an
 
 | Project | What it does |
 |---------|-------------|
-| yoke.lol | Domain intelligence |
+| yoke.lol | Domain intelligence (the hub) |
 | certs.lol | TLS/SSL certificate analysis |
+| ns.lol | DNS toolkit |
 | **vrfy.lol** | Email address validation |
-| open-distance.com | Distance calculations (separate brand) |
+| xhttp.lol | HTTP response debugger |
 
 ## Core Principles
 
