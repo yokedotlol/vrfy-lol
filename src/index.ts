@@ -36,6 +36,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   'Cross-Origin-Opener-Policy': 'same-origin',
+  'Content-Security-Policy': "default-src 'none'",
 };
 
 export default {
@@ -583,8 +584,8 @@ function sitemap(): string {
 }
 
 function securityTxt(): string {
-  return `Contact: mailto:hello@yoke.lol
-Expires: 2027-01-01T00:00:00Z
+  return `Contact: https://github.com/yokedotlol/vrfy-lol/issues
+Expires: 2027-06-18T00:00:00Z
 Preferred-Languages: en
 Canonical: https://vrfy.lol/.well-known/security.txt
 `;
