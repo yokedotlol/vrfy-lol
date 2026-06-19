@@ -60,7 +60,7 @@ export default {
     const corsHeaders: Record<string, string> = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
-      'Access-Control-Allow-Headers': 'Content-Type, Accept, X-Admin-Key',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept',
     };
 
     if (method === 'OPTIONS') {

@@ -21,7 +21,7 @@ vrfy.lol registered. Email validation API, part of the .lol family. No SMTP prob
 ### 2026-06-13 — No MCP server
 
 **What changed:** MCP server removed from scope.
-**Why:** Kurt's reaction: "Gross."
+**Why:** The maintainer's reaction: "Gross."
 **Directive:** Do not add MCP.
 
 ---
