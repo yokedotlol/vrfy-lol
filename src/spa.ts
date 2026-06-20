@@ -1484,6 +1484,7 @@ function cliPage(): string {
   return `<div class="content-page">
 <h2>CLI &amp; Libraries</h2>
 <p>Official clients for vrfy.lol. All handle proof-of-work transparently — just call the function and results come back.</p>
+<p style="margin-top:0.75rem;padding:8px 12px;background:#111116;border-left:3px solid #38d9a9;border-radius:4px;font-size:12px;color:#8e8e9a">🔒 <strong style="color:#38d9a9">Privacy:</strong> Email addresses are sent via POST to vrfy.lol — never in URLs, never logged, never stored. No accounts, no tracking. Proof-of-work replaces API keys. <a href="https://github.com/yokedotlol/vrfy-lol" style="color:#9b8afb">Source is on GitHub.</a></p>
 
 <h3>Quick start (curl)</h3>
 <p>No install required:</p>
