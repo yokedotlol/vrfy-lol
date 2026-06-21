@@ -1004,6 +1004,17 @@ function aboutPage(): string {
 
 <h2>Contact</h2>
 <p><a href="mailto:hello@yoke.lol">hello@yoke.lol</a></p>
+
+<h2>Built by</h2>
+<p>vrfy.lol is part of the <a href="https://yoke.lol">.lol</a> family — free developer tools for DNS, TLS, HTTP, email, and domain intelligence.</p>
+<ul>
+<li><a href="https://certs.lol">certs.lol</a> — TLS/SSL scanner</li>
+<li><a href="https://ns.lol">ns.lol</a> — DNS toolkit</li>
+<li><a href="https://xhttp.lol">xhttp.lol</a> — HTTP response debugger</li>
+<li><a href="https://vrfy.lol">vrfy.lol</a> — Email validation (you are here)</li>
+<li><a href="https://yoke.lol">yoke.lol</a> — Full domain intelligence</li>
+</ul>
+<p>Open source: <a href="https://github.com/yokedotlol/vrfy-lol">github.com/yokedotlol/vrfy-lol</a></p>
 </div>`;
 }
 
