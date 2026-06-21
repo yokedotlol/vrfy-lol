@@ -175,6 +175,7 @@ npx wrangler deploy
 - [certs.lol](https://certs.lol) — TLS certificate analysis
 - [ns.lol](https://ns.lol) — DNS lookup & propagation
 - [xhttp.lol](https://xhttp.lol) — HTTP response debugging
+- [vrfy.lol](https://vrfy.lol) — Email validation ← you are here
 
 ## License
 
