@@ -132,10 +132,10 @@ export default {
             license: 'MIT',
             _meta: {
               family: {
-                domain: 'https://yoke.lol',
+                domains: 'https://yoke.lol',
                 tls: 'https://certs.lol',
                 dns: 'https://ns.lol',
-                headers: 'https://xhttp.lol',
+                http: 'https://xhttp.lol',
               },
               docs: 'https://vrfy.lol/api/docs',
             },
