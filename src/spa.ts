@@ -32,8 +32,11 @@ ${path === '/usage' ? '<meta name="robots" content="noindex, nofollow">\n' : ''}
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://vrfy.lol${path === '/' ? '' : esc(path)}">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://vrfy.lol/og.png">
+<meta name="twitter:image" content="https://vrfy.lol/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="canonical" href="https://vrfy.lol${path === '/' ? '' : esc(path)}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
