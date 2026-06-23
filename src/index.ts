@@ -77,9 +77,15 @@ export default {
 
       // ── Favicon ──
 
-      if (path === '/favicon.svg') {
+      if (path === '/favicon.svg' || path === '/favicon.ico') {
         return new Response(faviconSvg(), {
           headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400', ...SECURITY_HEADERS, ...corsHeaders },
+        });
+      }
+
+      if (path === '/bimi-logo.svg') {
+        return new Response(bimiSvg(), {
+          headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=604800', ...SECURITY_HEADERS, ...corsHeaders },
         });
       }
 
@@ -566,9 +572,26 @@ function errorJson(
 // ─── Static assets ───
 
 function faviconSvg(): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="16" fill="#0d1117"/>
-  <text x="50" y="68" font-family="monospace" font-size="48" font-weight="700" fill="#38d9a9" text-anchor="middle">✓</text>
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#08080c"/>
+  <text x="16" y="24" font-family="monospace" font-weight="500" font-size="22"
+        fill="#fdd5b8" text-anchor="middle">v</text>
+</svg>`;
+}
+
+function bimiSvg(): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps"
+     viewBox="0 0 512 512" width="512" height="512">
+  <title>vrfy BIMI Logo</title>
+  <rect width="512" height="512" fill="#0a0a0f"/>
+  <text x="175" y="330" font-family="monospace" font-weight="500" font-size="280"
+        fill="#fa7315" opacity="0.15">v</text>
+  <text x="175" y="330" font-family="monospace" font-weight="500" font-size="280"
+        fill="#fa7315" opacity="0.25">v</text>
+  <text x="175" y="330" font-family="monospace" font-weight="500" font-size="280"
+        fill="#fdd5b8">v</text>
+  <rect x="310" y="135" width="80" height="200" rx="2" fill="#fa7315"/>
 </svg>`;
 }
 
