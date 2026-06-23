@@ -119,6 +119,28 @@ export default {
         });
       }
 
+      if (path === '/.well-known/ai-catalog.json') {
+        const catalog = {
+          specVersion: "1.0",
+          host: { displayName: "vrfy.lol", identifier: "did:web:vrfy.lol" },
+          entries: [{
+            identifier: "urn:air:vrfy.lol:api:email-verification",
+            displayName: "vrfy.lol Email Verification API",
+            type: "application/openapi+json",
+            url: "https://vrfy.lol",
+            description: "Free email verification API — syntax, DNS/MX, disposable detection, SMTP probe, catch-all check. POST-only, no emails in URLs. Proof-of-work instead of API keys.",
+            representativeQueries: [
+              "verify if an email address is deliverable",
+              "check if an email domain has valid MX records",
+              "detect disposable or throwaway email addresses",
+            ],
+          }],
+        };
+        return new Response(JSON.stringify(catalog, null, 2), {
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400', ...SECURITY_HEADERS, ...corsHeaders },
+        });
+      }
+
       if (path === '/sitemap.xml') {
         return new Response(sitemap(), {
           headers: { 'Content-Type': 'application/xml', ...SECURITY_HEADERS, ...corsHeaders },
