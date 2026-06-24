@@ -61,6 +61,6 @@ Same model as the .lol family — usage-based CF pricing. Keep per-request cost 
 - DO requests: $0.15/M (rate limiting)
 - DoH queries: free (Cloudflare's own resolver)
 
-## .ai/ Maintenance Protocol
+## .context/ Maintenance Protocol
 
 Same as Yoke: CONSTITUTION changes are rare and require discussion. DECISIONS is append-only. INVARIANTS require explicit approval to add/remove.
