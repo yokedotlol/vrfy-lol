@@ -37,6 +37,7 @@ ${path === '/usage' ? '<meta name="robots" content="noindex, nofollow">\n' : ''}
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
 <link rel="canonical" href="https://vrfy.lol${path === '/' ? '' : esc(path)}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
