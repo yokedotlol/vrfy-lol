@@ -51,7 +51,7 @@ ${path === '/usage' ? '<meta name="robots" content="noindex, nofollow">\n' : ''}
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Any',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    author: { '@type': 'Organization', name: '.lol tools', url: 'https://yoke.lol/tools' },
+    author: { '@type': 'Organization', name: 'Yoke', url: 'https://yoke.lol' },
   })}</script>
 ${styles()}
 </head>
