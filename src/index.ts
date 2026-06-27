@@ -68,9 +68,9 @@ export default {
       return new Response(null, { status: 204, headers: { ...SECURITY_HEADERS, ...corsHeaders } });
     }
 
-    if (method === 'HEAD') {
-      return new Response(null, { status: 200, headers: { ...SECURITY_HEADERS, ...corsHeaders } });
-    }
+    // Treat HEAD like GET for routing — CF Workers automatically strip the
+    // body from the Response, so every route returns correct headers.
+    const isGet = method === 'GET' || method === 'HEAD';
 
     try {
       const path = url.pathname;
@@ -184,7 +184,7 @@ export default {
 
       // ── SPA pages (GET, wants HTML) ──
 
-      if (method === 'GET' && SPA_PATHS.has(path)) {
+      if (isGet && SPA_PATHS.has(path)) {
         const wantsHtml = (request.headers.get('accept') || '').includes('text/html');
 
         if (path === '/' && !wantsHtml) {
@@ -243,7 +243,7 @@ export default {
 
       // ── GET /api/usage — Admin usage stats ──
 
-      if (path === '/api/usage' && method === 'GET') {
+      if (path === '/api/usage' && isGet) {
         return handleUsageApi(request, env, corsHeaders);
       }
 
@@ -261,7 +261,7 @@ export default {
 
       // ── GET /:path — check if it's an email (405) or unknown (404) ──
 
-      if (method === 'GET' && path.length > 1) {
+      if (isGet && path.length > 1) {
         const segment = decodeURIComponent(path.substring(1));
 
         if (segment.includes('@')) {
