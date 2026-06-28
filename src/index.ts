@@ -207,6 +207,7 @@ export default {
             license: 'MIT',
             _meta: {
               family: {
+                email: 'https://vrfy.lol',
                 domains: 'https://yoke.lol',
                 tls: 'https://certs.lol',
                 dns: 'https://ns.lol',
