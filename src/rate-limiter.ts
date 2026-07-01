@@ -5,7 +5,8 @@
  *   - 10 requests per hour per IP
  *   - 50 requests per day per IP
  *   - Both must pass for a free request
- *   - Cache hits don't count (caller skips the check)
+ *   - All non-PoW requests count (no cache exemption — cached
+ *     results would be free rides on another user's PoW)
  *
  * Nonce tracking:
  *   - Spent nonces stored as Map<string, number> (nonce → timestamp)
@@ -58,9 +59,9 @@ export class RateLimiterDO implements DurableObject {
   }
 
   /**
-   * Increment counters and return rate limit status.
-   * Called for uncached requests without PoW.
-   */
+ * Increment counters and return rate limit status.
+ * Called for all requests without PoW (including cache hits).
+ */
   private async check(): Promise<Response> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -185,7 +186,9 @@ export class RateLimiterDO implements DurableObject {
 
 /**
  * Check free-tier rate limit for an IP address.
- * Only called for uncached requests without PoW.
+ * Called for all requests without PoW (including cache hits — no
+ * cache exemption for vrfy, since cached results would let users
+ * skip another user's PoW).
  */
 export async function checkRateLimit(
   rateLimiter: DurableObjectNamespace,

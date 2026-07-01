@@ -104,7 +104,6 @@ The optional closed-source plugin adds existence signals via [Cloudflare Service
 |------|-------|-----|
 | Free | 10 requests/hour + 50/day per IP | Automatic |
 | PoW bypass | Unlimited | Solve a SHA-256 hashcash challenge |
-| Cached | Doesn't count | Domain results cached 7 days |
 
 The API returns a `pow` object with rate-limit responses. See `/api/docs` for the protocol.
 
