@@ -235,9 +235,10 @@ export default {
         return new Response(renderPage(path, nonce), {
           headers: {
             'Content-Type': 'text/html; charset=utf-8',
-            'Content-Security-Policy': `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https://yoke.lol; connect-src 'self'`,
             ...SECURITY_HEADERS,
             ...corsHeaders,
+            // Page-specific CSP AFTER SECURITY_HEADERS so it overrides the default "default-src 'none'"
+            'Content-Security-Policy': `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https://yoke.lol; connect-src 'self'`,
           },
         });
       }
