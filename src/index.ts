@@ -716,6 +716,9 @@ function sitemap(): string {
   <url><loc>https://vrfy.lol/api/docs</loc><lastmod>${now}</lastmod><priority>0.8</priority></url>
   <url><loc>https://vrfy.lol/privacy</loc><lastmod>${now}</lastmod><priority>0.4</priority></url>
   <url><loc>https://vrfy.lol/status</loc><lastmod>${now}</lastmod><priority>0.5</priority></url>
+  <url><loc>https://vrfy.lol/cli</loc><lastmod>${now}</lastmod><priority>0.7</priority></url>
+  <url><loc>https://vrfy.lol/pow</loc><lastmod>${now}</lastmod><priority>0.5</priority></url>
+  <url><loc>https://vrfy.lol/terms</loc><lastmod>${now}</lastmod><priority>0.3</priority></url>
 </urlset>`;
 }
 

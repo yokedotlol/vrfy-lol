@@ -1524,7 +1524,10 @@ echo "user@example.com" | ./vrfy.sh -
 
 <h3>Go CLI</h3>
 <p>Built with <a href="https://github.com/spf13/cobra">Cobra</a> + <a href="https://github.com/charmbracelet/lipgloss">Lipgloss</a>. Rich terminal output with color.</p>
-<pre># From source
+<pre># Homebrew
+brew install yokedotlol/tap/vrfy
+
+# From source
 go install github.com/yokedotlol/vrfy/cmd/vrfy@latest
 
 # Usage
