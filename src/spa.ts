@@ -1527,9 +1527,6 @@ echo "user@example.com" | ./vrfy.sh -
 <pre># Homebrew
 brew install yokedotlol/tap/vrfy
 
-# From source
-go install github.com/yokedotlol/vrfy/cmd/vrfy@latest
-
 # Usage
 vrfy check user@example.com
 vrfy check --json user@example.com
