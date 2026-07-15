@@ -163,7 +163,7 @@ export default {
             displayName: "vrfy.lol Email Verification API",
             type: "application/openapi+json",
             url: "https://vrfy.lol",
-            description: "Free email verification API — syntax, DNS/MX, disposable detection, SMTP probe, catch-all check. POST-only, no emails in URLs. Proof-of-work instead of API keys.",
+            description: "Free email verification API — syntax, DNS/MX, disposable detection, provider identification, typo correction. No SMTP probes. POST-only, no emails in URLs. Proof-of-work instead of API keys.",
             representativeQueries: [
               "verify if an email address is deliverable",
               "check if an email domain has valid MX records",
