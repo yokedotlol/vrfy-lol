@@ -601,6 +601,11 @@ async function handleUsageApi(
       { name: 'pgp', weight: 0.20, description: 'OpenPGP key server lookup' },
       { name: 'keybase', weight: 0.20, description: 'Keybase identity graph (~400K users)' },
       { name: 'libravatar', weight: 0.15, description: 'Libravatar federated avatar (FOSS/privacy users)' },
+      { name: 'microsoft', weight: 0.25, description: 'Microsoft account existence probe' },
+      { name: 'emailrep', weight: 0.25, description: 'EmailRep reputation and credential exposure' },
+      { name: 'wkd', weight: 0.20, description: 'WKD Web Key Directory lookup' },
+      { name: 'openpgpkey_dns', weight: 0.20, description: 'OPENPGPKEY DNS record (RFC 7929)' },
+      { name: 'smimea', weight: 0.15, description: 'SMIMEA DNS record (RFC 8162) for S/MIME certs' },
     ],
   }, 200, { ...corsHeaders, 'Cache-Control': 'no-cache' });
 }

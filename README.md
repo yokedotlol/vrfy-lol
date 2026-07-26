@@ -61,7 +61,7 @@ curl -s -X POST https://vrfy.lol/batch \
 | `verify` | Uncertain, needs confirmation | Send a verification email |
 | `block` | Strong negative signals | Reject or flag for review |
 
-## Signals (29 total)
+## Signals (34 total)
 
 ### Base Layer (open source, 21 signals)
 - **Syntax** — RFC 5321 validation, internationalized email support
@@ -86,7 +86,7 @@ curl -s -X POST https://vrfy.lol/batch \
 - **Spam Trap** — Pattern-based spam trap identification
 - **Security Grade** — A+ through F composite email security posture
 
-### Extended Layer (proprietary, 8 signals)
+### Extended Layer (proprietary, 13 signals)
 The optional closed-source plugin adds existence signals via [Cloudflare Service Binding](https://developers.cloudflare.com/workers/configuration/bindings/about-service-bindings/). Returns an opaque 0.0–1.0 score. Self-hosters get everything above; the extended layer is a confidence boost, not a gate.
 
 - Gravatar hash lookup (~260M profiles)
@@ -97,6 +97,11 @@ The optional closed-source plugin adds existence signals via [Cloudflare Service
 - XON (XposedOrNot breach database)
 - Libravatar (federated avatar service)
 - GitLab account discovery
+- Microsoft account existence probe
+- EmailRep reputation and credential exposure check
+- WKD (Web Key Directory) lookup
+- OPENPGPKEY DNS record check (RFC 7929)
+- SMIMEA DNS record check (RFC 8162)
 
 ## Rate Limits
 
