@@ -813,6 +813,13 @@ function buildResponse(
       ...(isAdmin ? { cached } : {}),
       query_ms: Date.now() - startMs,
       version: VERSION,
+      ...(syntax.domain && !syntax.is_ip_literal ? {
+        links: {
+          full_report: `https://yoke.lol/${syntax.domain}`,
+          dns_details: `https://ns.lol/${syntax.domain}`,
+          tls_details: `https://certs.lol/${syntax.domain}`,
+        },
+      } : {}),
     },
   };
 }

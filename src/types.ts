@@ -138,6 +138,12 @@ export interface MetaResult {
   cached?: boolean;
   query_ms: number;
   version: string;
+  /** Cross-links to .lol family for deeper analysis */
+  links?: {
+    full_report?: string;
+    dns_details?: string;
+    tls_details?: string;
+  };
 }
 
 // ─── Request types ───

@@ -895,6 +895,18 @@ function scripts(nonce: string): string {
       html += '</div>';
     }
 
+    // Cross-links — yoke.lol/{domain} deep dive (family convention: each satellite links to yoke)
+    try {
+      var domain = (d.email || '').split('@').pop() || '';
+      if (domain && !domain.startsWith('[') && domain.indexOf('.') > 0) {
+        html += '<div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap">';
+        html += '<a class="link-pill cross-link" href="https://yoke.lol/' + escHtml(domain) + '" target="_blank" rel="noopener">📊 Full domain report → yoke.lol</a>';
+        html += '<a class="link-pill" href="https://ns.lol/' + escHtml(domain) + '" target="_blank" rel="noopener">🌐 DNS → ns.lol</a>';
+        html += '<a class="link-pill" href="https://certs.lol/' + escHtml(domain) + '" target="_blank" rel="noopener">🔒 TLS → certs.lol</a>';
+        html += '</div>';
+      }
+    } catch(e) {}
+
     // Raw JSON
     html += '<button class="raw-toggle" id="rawToggle">{ } Raw JSON</button>';
     html += '<pre class="raw-json" id="rawJson">' + escHtml(JSON.stringify(d, null, 2)) + '</pre>';
