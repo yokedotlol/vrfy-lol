@@ -239,6 +239,8 @@ export interface Env {
   CACHE_SECRET: string;
   /** HMAC key for PoW challenge generation */
   POW_SECRET: string;
+  /** Salt for hashing client IPs before rate-limiter storage. */
+  IP_HASH_SALT?: string;
   /** Optional admin key for signal visibility (set via wrangler secret) */
   ADMIN_KEY?: string;
   /** Optional extended validation service binding (closed-source plugin) */

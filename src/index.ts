@@ -16,7 +16,7 @@
 import type { Env, ValidateRequest, BatchRequest } from './types';
 import { validateEmail, validateBatch, type ValidateOptions } from './validate';
 import { generateChallenge, verifyPow } from './pow';
-import { checkRateLimit, checkNonceFresh } from './rate-limiter';
+import { checkRateLimit, checkNonceFresh, hashRateLimitKey } from './rate-limiter';
 import { ERRORS, errorStatus, type ErrorResponse } from './errors';
 import { renderPage } from './spa';
 
@@ -307,12 +307,13 @@ async function handlePost(
   }
 
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
+  const rateLimitKey = await hashRateLimitKey(ip, env.IP_HASH_SALT);
   const adminKey = request.headers.get('x-admin-key') || undefined;
   const quick = body.quick ?? (body.mode === 'quick');
 
   // ── SSE streaming mode ──
   if (body.stream) {
-    return handleStreamingValidation(body, ip, adminKey, quick, env, corsHeaders, ctx);
+    return handleStreamingValidation(body, ip, rateLimitKey, adminKey, quick, env, corsHeaders, ctx);
   }
 
   const options: ValidateOptions = {
@@ -334,7 +335,7 @@ async function handlePost(
     }
 
     const nonceFresh = await checkNonceFresh(
-      env.RATE_LIMITER, ip, body.pow.challenge, body.pow.nonce,
+      env.RATE_LIMITER, rateLimitKey, body.pow.challenge, body.pow.nonce,
     );
     if (!nonceFresh) {
       const challenge = await generateChallenge(ip, env.POW_SECRET);
@@ -350,7 +351,7 @@ async function handlePost(
     });
   }
 
-  const rateLimit = await checkRateLimit(env.RATE_LIMITER, ip);
+  const rateLimit = await checkRateLimit(env.RATE_LIMITER, rateLimitKey);
   if (!rateLimit.allowed) {
     const challenge = await generateChallenge(ip, env.POW_SECRET);
     return errorJson(ERRORS.rateLimited(challenge), corsHeaders, {
@@ -397,6 +398,7 @@ async function handleBatch(
   }
 
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
+  const rateLimitKey = await hashRateLimitKey(ip, env.IP_HASH_SALT);
 
   if (body.pow) {
     const batchDifficulty = 20 + Math.floor(Math.log2(body.emails.length));
@@ -410,7 +412,7 @@ async function handleBatch(
     }
 
     const nonceFresh = await checkNonceFresh(
-      env.RATE_LIMITER, ip, body.pow.challenge, body.pow.nonce,
+      env.RATE_LIMITER, rateLimitKey, body.pow.challenge, body.pow.nonce,
     );
     if (!nonceFresh) {
       const challenge = await generateChallenge(ip, env.POW_SECRET, batchDifficulty);
@@ -420,7 +422,7 @@ async function handleBatch(
       });
     }
   } else {
-    const rateLimit = await checkRateLimit(env.RATE_LIMITER, ip);
+    const rateLimit = await checkRateLimit(env.RATE_LIMITER, rateLimitKey);
     if (!rateLimit.allowed) {
       const batchDifficulty = 20 + Math.floor(Math.log2(body.emails.length));
       const challenge = await generateChallenge(ip, env.POW_SECRET, batchDifficulty);
@@ -450,6 +452,7 @@ async function handleBatch(
 async function handleStreamingValidation(
   body: ValidateRequest,
   ip: string,
+  rateLimitKey: string,
   adminKey: string | undefined,
   quick: boolean,
   env: Env,
@@ -467,7 +470,7 @@ async function handleStreamingValidation(
       });
     }
     const nonceFresh = await checkNonceFresh(
-      env.RATE_LIMITER, ip, body.pow.challenge, body.pow.nonce,
+      env.RATE_LIMITER, rateLimitKey, body.pow.challenge, body.pow.nonce,
     );
     if (!nonceFresh) {
       const challenge = await generateChallenge(ip, env.POW_SECRET);
@@ -477,7 +480,7 @@ async function handleStreamingValidation(
       });
     }
   } else {
-    const rateLimit = await checkRateLimit(env.RATE_LIMITER, ip);
+    const rateLimit = await checkRateLimit(env.RATE_LIMITER, rateLimitKey);
     if (!rateLimit.allowed) {
       const challenge = await generateChallenge(ip, env.POW_SECRET);
       return errorJson(ERRORS.rateLimited(challenge), corsHeaders, {
