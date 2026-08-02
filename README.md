@@ -44,8 +44,8 @@ curl -s -X POST https://vrfy.lol/batch \
     "mta_sts": true
   },
   "_meta": {
-    "signals": 18,
-    "signals_positive": 16,
+    "signals": 28,
+    "signals_positive": 24,
     "cached": false,
     "query_ms": 142,
     "version": "1.0.0"
@@ -61,9 +61,9 @@ curl -s -X POST https://vrfy.lol/batch \
 | `verify` | Uncertain, needs confirmation | Send a verification email |
 | `block` | Strong negative signals | Reject or flag for review |
 
-## Signals (34 total)
+## Signals (41 scored, +3 informational)
 
-### Base Layer (open source, 21 signals)
+### Base Layer (open source, 28 scored signals +3 informational checks = 31 checks)
 - **Syntax** — RFC 5321 validation, internationalized email support
 - **MX Records** — DNS lookup via DoH, null MX detection, A-record fallback
 - **Disposable Detection** — 141,000+ known throwaway domains
@@ -73,17 +73,27 @@ curl -s -X POST https://vrfy.lol/batch \
 - **Typo Detection** — Levenshtein distance against known providers
 - **Provider ID** — MX-based provider identification with behavior hints
 - **Subaddress** — `+tag` detection with base address extraction
-- **IP Literal** — RFC 5321 §4.1.3 IP address domain detection (`[1.1.1.1]`, `[IPv6:...]`)
-- **Internationalized (EAI)** — SMTPUTF8/IDN domain detection
-- **Punycode** — `xn--` encoded domain label detection (homograph attack vector)
+- **IP Literal** — RFC 5321 §4.1.3 IP address domain detection (`[1.1.1.1]`, `[IPv6:...]`) — informational, not scored
+- **Internationalized (EAI)** — SMTPUTF8/IDN domain detection — informational
+- **Punycode** — `xn--` encoded domain label detection (homograph attack vector) — informational
 - **DMARC** — Policy analysis (none/quarantine/reject)
 - **SPF** — Record presence and strictness
 - **BIMI** — Brand indicator record detection
 - **MTA-STS** — Strict transport security for email
+- **TLS-RPT** — TLS reporting policy detection
+- **DANE TLSA** — DNS-based authentication of named entities
+- **DNSSEC** — DNS security extensions validation
 - **MX Fingerprinting** — Enterprise/consumer/self-hosted/forwarding classification + security gateway detection
 - **Risky TLD** — 34 TLDs associated with abuse
 - **Domain Entropy** — Shannon entropy for randomly-generated domain detection
 - **Spam Trap** — Pattern-based spam trap identification
+- **Subdomain Detection** — Subdomain vs apex analysis
+- **NS Provider** — Nameserver provider identification
+- **SMTP Submission** — SRV-based submission service detection
+- **IMAP Service** — SRV-based IMAP service detection
+- **Domain Age** — Newly-registered domain detection
+- **DKIM Selectors** — Common DKIM selector probing
+- **Local-Part Pattern** — Random local-part detection
 - **Security Grade** — A+ through F composite email security posture
 
 ### Extended Layer (proprietary, 13 signals)
