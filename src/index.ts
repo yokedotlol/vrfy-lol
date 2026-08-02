@@ -316,13 +316,10 @@ async function handlePost(
     return handleStreamingValidation(body, ip, rateLimitKey, adminKey, quick, env, corsHeaders, ctx);
   }
 
-  const options: ValidateOptions = {
-    quick,
-    force: body.force ?? false,
-    adminKey,
-  };
-
-  const result = await validateEmail(body.email, env, options);
+  // ── PoW / rate limit BEFORE validation ──
+  // vrfy exception: cached results must NOT skip rate limits (would be free ride on another user's PoW)
+  // Validate PoW/rate limit first to avoid expensive DNS work for abusive clients.
+  let rateLimit: Awaited<ReturnType<typeof checkRateLimit>> | null = null;
 
   if (body.pow) {
     const powValid = await verifyPow(body.pow, ip, env.POW_SECRET);
@@ -344,29 +341,40 @@ async function handlePost(
         'X-Pow-Required': 'true',
       });
     }
+    // PoW valid — unlimited, skip rate limit counting
+  } else {
+    rateLimit = await checkRateLimit(env.RATE_LIMITER, rateLimitKey);
+    if (!rateLimit.allowed) {
+      const challenge = await generateChallenge(ip, env.POW_SECRET);
+      return errorJson(ERRORS.rateLimited(challenge), corsHeaders, {
+        'Retry-After': '0',
+        'X-Pow-Required': 'true',
+        'X-RateLimit-Remaining-Hourly': String(rateLimit.remaining_hourly),
+        'X-RateLimit-Remaining-Daily': String(rateLimit.remaining_daily),
+      });
+    }
+  }
 
+  const options: ValidateOptions = {
+    quick,
+    force: body.force ?? false,
+    adminKey,
+  };
+
+  const result = await validateEmail(body.email, env, options);
+
+  if (body.pow) {
     return json(result, 200, {
       ...corsHeaders,
       'X-Vrfy-Version': VERSION,
     });
   }
 
-  const rateLimit = await checkRateLimit(env.RATE_LIMITER, rateLimitKey);
-  if (!rateLimit.allowed) {
-    const challenge = await generateChallenge(ip, env.POW_SECRET);
-    return errorJson(ERRORS.rateLimited(challenge), corsHeaders, {
-      'Retry-After': '0',
-      'X-Pow-Required': 'true',
-      'X-RateLimit-Remaining-Hourly': String(rateLimit.remaining_hourly),
-      'X-RateLimit-Remaining-Daily': String(rateLimit.remaining_daily),
-    });
-  }
-
   return json(result, 200, {
     ...corsHeaders,
     'X-Vrfy-Version': VERSION,
-    'X-RateLimit-Remaining-Hourly': String(rateLimit.remaining_hourly),
-    'X-RateLimit-Remaining-Daily': String(rateLimit.remaining_daily),
+    'X-RateLimit-Remaining-Hourly': String(rateLimit!.remaining_hourly),
+    'X-RateLimit-Remaining-Daily': String(rateLimit!.remaining_daily),
   });
 }
 

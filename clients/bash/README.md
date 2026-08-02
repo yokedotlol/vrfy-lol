@@ -4,6 +4,8 @@ Standalone bash script for [vrfy.lol](https://vrfy.lol) email validation.
 
 Zero dependencies beyond `curl` and `openssl` (both pre-installed on macOS and most Linux distros). Automatically solves proof-of-work challenges.
 
+Email addresses are sent via POST to vrfy.lol — never in URLs, never logged, never stored. You can always self-host if you need privacy.
+
 ## Quick curl (no script needed)
 
 ```bash

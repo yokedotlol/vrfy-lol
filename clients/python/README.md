@@ -4,6 +4,8 @@ Email validation client for [vrfy.lol](https://vrfy.lol) — no SMTP probes, no 
 
 Zero dependencies. Automatically solves proof-of-work challenges when rate-limited.
 
+Email addresses are sent via POST to vrfy.lol — never in URLs, never logged. No accounts, no tracking. You can always self-host if you need privacy.
+
 > **Not yet published on PyPI.** Use by cloning the repo and importing directly.
 
 ## Library Usage

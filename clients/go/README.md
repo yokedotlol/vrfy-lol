@@ -2,6 +2,8 @@
 
 Email validation without SMTP probes. Part of the [.lol family](https://yoke.lol).
 
+Email addresses are sent via POST to vrfy.lol — never in URLs, never logged. No accounts, no tracking. You can always self-host if you need privacy.
+
 > **Not yet published.** This client is in the repo but not available via `go install` or Homebrew yet. Use the library by importing the module directly from source.
 
 ## Library Usage
