@@ -142,3 +142,19 @@ vrfy.lol registered. Email validation API, part of the .lol family. No SMTP prob
 **What changed:** Holehe-style auth flow probing (password-reset/registration endpoint enumeration) confirmed permanently out of scope.
 **Why:** Violates platform ToS, may notify targets, contradicts vrfy's probeless constraint and product identity. The differentiator IS the probeless approach.
 **Directive:** Never add. This is a red line.
+
+---
+
+### 2026-07-26 — Cross-linking restored per family convention
+
+**What changed:** Re-enabled family cross-linking. API responses now include `_meta.links` (`yoke.lol/{domain}`, `ns.lol/{domain}`, `certs.lol/{domain}`) and SPA result rendering includes pill links to yoke/ns/certs. Reverses 2026-06-13 "stands alone" decision.
+**Why:** AGENTS.md family convention requires each satellite links to `yoke.lol/{domain}` for deeper analysis. Existing code already implemented links; docs were stale.
+**Directive:** Satellite tools must link to `yoke.lol/{domain}`. CONSTITUTION updated to reflect hub-and-satellite linking.
+
+---
+
+### 2026-07-26 — Rate limiting: cache hits DO count (vrfy exception)
+
+**What changed:** Clarified that vrfy does NOT skip rate limits on cache hits, unlike other .lol tools.
+**Why:** If cached results skipped rate limiting, they would be free rides on another user's PoW. vrfy is explicitly the family exception per AGENTS.md.
+**Directive:** `src/index.ts` checks rate limit BEFORE cache lookup. INVARIANTS, PATTERNS, and CONSTITUTION updated. Earlier docs claiming "cache hits exempt/bypass" were incorrect.

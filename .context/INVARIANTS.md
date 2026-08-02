@@ -10,8 +10,8 @@
 - [ ] **`action` field in every response.** Every validation response includes `action: "allow" | "verify" | "block"`.
   - _Verify:_ Check response type in `types.ts`.
 
-- [ ] **Email addresses never in persistent storage.** KV cache keys are domain-only. Local parts are processed in-memory and discarded.
-  - _Verify:_ `grep -r 'CACHE.*put\|storage.*put' src/` — no cache key should contain `@` or local part references.
+- [ ] **Email addresses never in persistent storage.** Raw addresses never stored. Domain cache is domain-only (`domain:{domain}`); extended cache uses HMAC (`extended:{hmac(email)}`) so raw addresses are never stored.
+  - _Verify:_ `grep -rn "CACHE.put" src/` — domain cache key is `domain:${domain}`, extended cache key is `extended:` + hex(HMAC). No raw `@` in keys.
 
 - [ ] **No accounts, no API keys.** Rate limiting is IP-based only.
   - _Verify:_ `grep -r 'api.key\|apikey\|api_key\|authorization.*bearer' src/` — should only find probe auth, never user-facing auth.
@@ -40,8 +40,8 @@
 - [ ] **Batch counts as 1 request.** `POST /batch` (up to 20 emails) counts as a single rate-limited request.
   - _Verify:_ Rate limit check happens once per request, not per email in batch.
 
-- [ ] **Cache hits don't count against rate limits.** Cached responses bypass the rate limiter.
-  - _Verify:_ Rate limit check happens after cache lookup.
+- [ ] **Cache hits still count against rate limits (vrfy exception).** Unlike other .lol tools, vrfy does NOT skip rate limits on cache hits — cached results would be free rides on another user's PoW.
+  - _Verify:_ In `src/index.ts`, `checkRateLimit` happens BEFORE `validateEmail` (which does cache lookup).
 
 ## Build & Deploy
 

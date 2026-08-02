@@ -63,7 +63,7 @@ Durable Object-based, two windows:
 - 10 requests/hour (sliding window)
 - 50 requests/day (sliding window)
 
-Batch requests (`POST /batch`, up to 20 emails) count as 1 request. Cache hits bypass the rate limiter entirely.
+Batch requests (`POST /batch`, up to 20 emails) count as 1 request. vrfy is the family exception: cache hits do NOT bypass rate limiting (otherwise cached results would be free rides on another user's PoW).
 
 When rate limited, clients can solve a PoW challenge to bypass. The PoW system is stateless (HMAC-based, no nonce storage).
 
