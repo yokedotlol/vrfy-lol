@@ -73,12 +73,10 @@ Two cache layers, both in the same KV namespace:
 
 | Layer | Key | TTL | Data |
 |-------|-----|-----|------|
-| Domain | `{domain}` | 7 days | DNS, MX, security, provider |
-| Extended | HMAC-keyed email hash | 30 days (smart) | Existence signals |
+| Domain | `domain:{domain}` | 7 days (604800s) | DNS, MX, security, provider |
+| Extended | `extended:{hmac}` HMAC-SHA256(email) | 30 days fixed (2592000s) | Existence signals |
 
-Domain cache keys never contain email addresses. Extended cache uses HMAC to pseudonymize — the raw email is processed in memory and discarded.
-
-Smart TTL for extended cache: high-rep emails with many platform signals get 30 days. Low/no data gets 3 days (re-check sooner).
+Domain cache keys never contain email addresses (`domain:{domain}`). Extended cache uses HMAC-SHA256 to pseudonymize (`extended:{hmac}`) — raw email processed in memory and discarded. 30 days fixed, no smart TTL variation. Raw email never stored.
 
 ## SPA Rendering (`spa.ts`)
 

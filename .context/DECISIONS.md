@@ -92,8 +92,8 @@ vrfy.lol registered. Email validation API, part of the .lol family. No SMTP prob
 ### 2026-06-17 — Rate limit relaxed to 10/hour + 50/day
 
 **What changed:** Rate limit updated from 10/min to 10 requests/hour + 50 requests/day per IP.
-**Why:** 10/min was the initial conservative target. Actual implementation uses hourly + daily sliding windows for smoother ergonomics. Batch (20 emails) still counts as 1 request. Cache hits exempt.
-**Directive:** 10/hour + 50/day per IP. INVARIANTS.md updated to match.
+**Why:** 10/min was the initial conservative target. Actual implementation uses hourly + daily sliding windows for smoother ergonomics. Cache hits still count (vrfy exception — would be free ride on PoW), batch counts as 1 request.
+**Directive:** 10/hour + 50/day per IP. Cache hits still count (vrfy exception). INVARIANTS.md updated to match.
 
 ---
 

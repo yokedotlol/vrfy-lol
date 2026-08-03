@@ -2,7 +2,7 @@
 
 **Email validation without SMTP probes.** No accounts. No tracking. MIT licensed.
 
-vrfy.lol validates email addresses using DNS signals, domain heuristics, and public identity graphs — never by connecting to a mail server. POST-only API, proof-of-work abuse prevention, zero PII storage.
+vrfy.lol validates email addresses using DNS signals, domain heuristics, and public identity graphs — never by connecting to a mail server. POST-only API (405 on GET), proof-of-work abuse prevention, raw email never stored — extended cache HMAC 30d, domain cache 7d, hashed IP only for rate limiting.
 
 ## Quick Start
 
@@ -168,11 +168,15 @@ npx wrangler deploy
 
 ## Privacy
 
-- **POST-only** — emails never appear in URLs, logs, or CDN analytics
-- **No accounts** — proof-of-work replaces API keys, so no user data to store
-- **No SMTP probes** — we never connect to mail servers
-- **HMAC-keyed cache** — email-level cache keys are pseudonymized
-- **Domain-level cache** — only domain names cached, not email addresses
+- **POST-only (405 on GET)** — emails never appear in URLs, server logs, CDN analytics, or browser history
+- **Raw email never stored** — only derivatives cached; raw email processed in memory and discarded
+- **Domain cache 7d** — `domain:{domain}` — DNS/MX/provider results, no email addresses
+- **Extended cache 30d** — `extended:{hmac}` — HMAC-SHA256(email) pseudonymized key, 30 days fixed, not reversible
+- **HMAC-keyed** — email-level cache uses HMAC-SHA256 with server secret; raw email never stored as key
+- **Hashed IP only** — rate limiting via `IP_HASH_SALT`-hashed IP in Durable Object, counters expire, no raw IP logs retained
+- **Cloudflare edge logs not accessed** — Cloudflare processes requests as CDN/compute; we do not access, store, or process their standard edge logs (IP, URL, timestamp)
+- **Server logs** — no email addresses in logs; extended cache HMAC 30d, domain cache 7d
+- **No accounts, no cookies, no SMTP probes** — PoW replaces API keys; we never connect to mail servers
 
 ## API Endpoints
 

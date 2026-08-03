@@ -1012,7 +1012,7 @@ function aboutPage(): string {
 <p>vrfy.lol does everything DNS can tell you and is honest about the rest. For most sign-up flows, that's enough. For "does this specific mailbox exist?" — send a verification email. That's always been the only reliable answer.</p>
 
 <h2>Privacy</h2>
-<p>Email validation uses <code>POST /</code> exclusively. Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Domain-level results are cached by domain name — no email addresses stored. No analytics, no cookies, no accounts.</p>
+<p>Email validation uses <code>POST /</code> exclusively (405 on GET). Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses never stored — extended cache HMAC 30d (<code>extended:{hmac}</code> HMAC-SHA256), domain cache 7d (<code>domain:{domain}</code>). Cloudflare edge logs not accessed. Hashed IP only for rate limiting (IP_HASH_SALT). No analytics, no cookies, no accounts.</p>
 
 <h2>Self-hosting</h2>
 <p>Fork the repo and run your own: <code>wrangler deploy</code>. Zero external dependencies for core validation.</p>
