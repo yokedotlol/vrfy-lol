@@ -1149,8 +1149,11 @@ function privacyPage(): string {
 <p>Third-party lookups for extended validation are performed under legitimate interest (GDPR Article 6(1)(f)) for email fraud prevention. Only the minimum data required by each service is transmitted — a cryptographic hash where supported, the full address only where the service requires it. No data is retained beyond the active cache window.</p>
 <p>For business use, a Data Processing Agreement (DPA) is available on request — contact <a href="mailto:hello@yoke.lol">hello@yoke.lol</a>.</p>
 
+<h3>Server logs</h3>
+<p>Cloudflare processes requests as our CDN and compute provider. Their standard edge logs (IP, URL, timestamp) are subject to <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. We do not access, store, or process these logs.</p>
+
 <h3>IP addresses</h3>
-<p>IP addresses are used solely for rate limiting and proof-of-work challenge generation. No IP address logs are retained beyond the active rate limiting window.</p>
+<p>For rate limiting and proof-of-work, we store an IP-derived hashed key in a Cloudflare Durable Object. These counters expire automatically and contain no personally identifiable information beyond the hashed key. No raw IP address logs are retained on our side beyond the active rate limiting window.</p>
 
 <h3>Self-hosting</h3>
 <p>For full control, fork the repo and run your own instance: <code>wrangler deploy</code>.</p>
