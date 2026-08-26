@@ -19,6 +19,7 @@ import { generateChallenge, verifyPow } from './pow';
 import { checkRateLimit, checkNonceFresh, hashRateLimitKey } from './rate-limiter';
 import { ERRORS, errorStatus, type ErrorResponse } from './errors';
 import { renderPage } from './spa';
+import openApiSpec from './openapi.json';
 
 export { RateLimiterDO } from './rate-limiter';
 
@@ -142,6 +143,18 @@ export default {
         return json({ status: 'ok', service: 'vrfy.lol', version: VERSION }, 200, corsHeaders);
       }
 
+      if (path === '/openapi.json' || path === '/api/openapi.json') {
+        return new Response(JSON.stringify(openApiSpec, null, 2), {
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600',
+            'Access-Control-Allow-Origin': '*',
+            ...SECURITY_HEADERS,
+            ...corsHeaders,
+          },
+        });
+      }
+
       if (path === '/.well-known/security.txt') {
         return new Response(securityTxt(), {
           headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400', ...SECURITY_HEADERS, ...corsHeaders },
@@ -162,7 +175,7 @@ export default {
             identifier: "urn:air:vrfy.lol:api:email-verification",
             displayName: "vrfy.lol Email Verification API",
             type: "application/openapi+json",
-            url: "https://vrfy.lol",
+            url: "https://vrfy.lol/openapi.json",
             description: "Free email verification API — syntax, DNS/MX, disposable detection, provider identification, typo correction. No SMTP probes. POST-only, no emails in URLs. Proof-of-work instead of API keys.",
             representativeQueries: [
               "verify if an email address is deliverable",

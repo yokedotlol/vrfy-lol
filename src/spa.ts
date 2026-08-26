@@ -1038,6 +1038,7 @@ function docsPage(): string {
   return `<div class="content-page">
 <h2>API Reference</h2>
 <p>All endpoints. No authentication required.</p>
+<p><strong>Machine-readable:</strong> <a href="/openapi.json">openapi.json</a> (<a href="/api/openapi.json">/api/openapi.json</a>) · <a href="/.well-known/ai-catalog.json">ai-catalog.json</a></p>
 
 <h3>POST /</h3>
 <p>Validate a single email address.</p>
