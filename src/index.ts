@@ -379,12 +379,14 @@ async function handlePost(
   if (body.pow) {
     return json(result, 200, {
       ...corsHeaders,
+      'Cache-Control': 'no-store',
       'X-Vrfy-Version': VERSION,
     });
   }
 
   return json(result, 200, {
     ...corsHeaders,
+    'Cache-Control': 'no-store',
     'X-Vrfy-Version': VERSION,
     'X-RateLimit-Remaining-Hourly': String(rateLimit!.remaining_hourly),
     'X-RateLimit-Remaining-Daily': String(rateLimit!.remaining_daily),
@@ -464,6 +466,7 @@ async function handleBatch(
 
   return json(result, 200, {
     ...corsHeaders,
+    'Cache-Control': 'no-store',
     'X-Vrfy-Version': VERSION,
   });
 }
@@ -650,7 +653,7 @@ function json(data: unknown, status: number, headers: Record<string, string> = {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=60',
+      'Cache-Control': 'no-store',
       'Content-Security-Policy': "default-src 'none'",
       ...SECURITY_HEADERS,
       ...headers,

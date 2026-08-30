@@ -28,17 +28,17 @@ describe('PoW Protocol', () => {
     expect(/^[0-9a-f]{64}$/.test(mockChallenge)).toBe(true);
   });
 
-  test('difficulty 18 means 18 leading zero bits', () => {
-    // With difficulty 18, the first 2 bytes must be 0x00 0x00
-    // and the third byte must have its top 2 bits as 0 (< 0x40)
-    const hash = new Uint8Array([0x00, 0x00, 0x20, 0xff]); // 18 leading zeros
+  test('difficulty 20 means 20 leading zero bits', () => {
+    // With difficulty 20, the first 2 bytes must be 0x00 0x00
+    // and the third byte must have its top 4 bits as 0 (< 0x10)
+    const hash = new Uint8Array([0x00, 0x00, 0x08, 0xff]); // 20 leading zeros
     let bits = 0;
     for (const byte of hash) {
       if (byte === 0) { bits += 8; continue; }
       bits += Math.clz32(byte) - 24;
       break;
     }
-    expect(bits).toBe(18);
+    expect(bits).toBe(20);
   });
 
   test('difficulty check rejects insufficient zeros', () => {
@@ -50,15 +50,15 @@ describe('PoW Protocol', () => {
       break;
     }
     expect(bits).toBe(15);
-    expect(bits >= 18).toBe(false);
+    expect(bits >= 20).toBe(false);
   });
 
   test('batch difficulty scaling: floor(log2(batchSize))', () => {
-    const baseDifficulty = 18;
-    expect(baseDifficulty + Math.floor(Math.log2(1))).toBe(18);   // batch of 1
-    expect(baseDifficulty + Math.floor(Math.log2(2))).toBe(19);   // batch of 2
-    expect(baseDifficulty + Math.floor(Math.log2(10))).toBe(21);  // batch of 10
-    expect(baseDifficulty + Math.floor(Math.log2(20))).toBe(22);  // batch of 20
+    const baseDifficulty = 20;
+    expect(baseDifficulty + Math.floor(Math.log2(1))).toBe(20);   // batch of 1
+    expect(baseDifficulty + Math.floor(Math.log2(2))).toBe(21);   // batch of 2
+    expect(baseDifficulty + Math.floor(Math.log2(10))).toBe(23);  // batch of 10
+    expect(baseDifficulty + Math.floor(Math.log2(20))).toBe(24);  // batch of 20
   });
 
   test('5-minute bucket calculation', () => {
@@ -110,7 +110,7 @@ describe('Error Schema', () => {
     const challenge = {
       algorithm: 'sha256' as const,
       challenge: 'a'.repeat(64),
-      difficulty: 18,
+      difficulty: 20,
       expires: Math.floor(Date.now() / 1000) + 300,
     };
 
@@ -123,7 +123,7 @@ describe('Error Schema', () => {
 
     expect(error.pow).toBeDefined();
     expect(error.pow.algorithm).toBe('sha256');
-    expect(error.pow.difficulty).toBe(18);
+    expect(error.pow.difficulty).toBe(20);
     expect(error.pow.challenge.length).toBe(64);
   });
 
@@ -131,7 +131,7 @@ describe('Error Schema', () => {
     const challenge = {
       algorithm: 'sha256' as const,
       challenge: 'test',
-      difficulty: 18,
+      difficulty: 20,
       expires: 0,
     };
     expect(challenge.algorithm).toBe('sha256');
