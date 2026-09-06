@@ -985,7 +985,7 @@ function landingPage(): string {
   </div>
   <div class="feature">
     <div class="feature-title">Disposable Detection</div>
-    <div class="feature-desc">141K+ disposable domains bundled. Wildcard + MX-based detection.</div>
+    <div class="feature-desc">141K+ disposable domains bundled, with exact and parent-domain matching.</div>
   </div>
   <div class="feature">
     <div class="feature-title">Privacy Relays</div>
@@ -1052,7 +1052,7 @@ function docsPage(): string {
 <tr><th>Field</th><th>Type</th><th>Description</th></tr>
 <tr><td><code>email</code></td><td>string</td><td>Required. Email address to validate.</td></tr>
 <tr><td><code>quick</code></td><td>boolean</td><td>Skip enrichment/security (Tier 1 only). Default false.</td></tr>
-<tr><td><code>force</code></td><td>boolean</td><td>Bypass cache. Default false.</td></tr>
+<tr><td><code>force</code></td><td>boolean</td><td>Bypass the domain-level cache. Default false.</td></tr>
 <tr><td><code>pow</code></td><td>object</td><td>Proof-of-work solution (for unlimited access). <a href="/pow">See protocol →</a></td></tr>
 </table>
 
@@ -1073,7 +1073,7 @@ function docsPage(): string {
   "action": "allow",       // allow | verify | block
   "confidence": "valid",   // valid | likely_valid | risky | invalid | unknown
   "validation": { ... },   // detailed signals
-  "_meta": { ... }          // timing, cache status, version
+  "_meta": { ... }          // timing, signal counts, version
 }</pre>
 
 <h3>The action field</h3>
@@ -1524,19 +1524,19 @@ function cliPage(): string {
   -d '{"email":"user@example.com"}' | jq .action</pre>
 
 <h3>Shell script</h3>
-<p>Zero dependencies beyond <code>curl</code> + <code>openssl</code>. Handles PoW, batch files, colored output, and pipe-friendly exit codes.</p>
+<p>Requires <code>curl</code>, <code>openssl</code>, and <code>xxd</code>. Handles PoW, batch files, colored output, and pipe-friendly exit codes.</p>
 <pre># Run directly
-curl -sL vrfy.lol/vrfy.sh | bash -s -- user@example.com
+curl -sL https://raw.githubusercontent.com/yokedotlol/vrfy-lol/main/clients/bash/vrfy.sh | bash -s -- user@example.com
 
 # Or download and use
-curl -sLO vrfy.lol/vrfy.sh &amp;&amp; chmod +x vrfy.sh
+curl -sLo vrfy.sh https://raw.githubusercontent.com/yokedotlol/vrfy-lol/main/clients/bash/vrfy.sh &amp;&amp; chmod +x vrfy.sh
 ./vrfy.sh user@example.com
 ./vrfy.sh user@example.com admin@company.com
 ./vrfy.sh --batch emails.txt
 echo "user@example.com" | ./vrfy.sh -
 ./vrfy.sh --json user@example.com</pre>
 
-<p>Exit codes: <code>0</code> = allow, <code>1</code> = block, <code>2</code> = verify.</p>
+<p>Exit codes: <code>0</code> = allow, <code>1</code> = block, <code>2</code> = verify. For batches, block takes precedence over verify.</p>
 
 <h3>Go CLI</h3>
 <p>Built with <a href="https://github.com/spf13/cobra">Cobra</a> + <a href="https://github.com/charmbracelet/lipgloss">Lipgloss</a>. Rich terminal output with color.</p>
@@ -1559,7 +1559,7 @@ echo "user@example.com" | vrfy check -</pre>
 </table>
 
 <h4>Go library</h4>
-<pre>import vrfy "github.com/yokedotlol/vrfy"
+<pre>import vrfy "github.com/yokedotlol/vrfy-lol/clients/go"
 
 client := vrfy.NewClient()
 result, err := client.Validate("user@example.com")
@@ -1600,7 +1600,7 @@ for r in batch["results"]:
 <ul>
 <li>Transparent PoW — rate limits are handled automatically</li>
 <li>Single and batch validation</li>
-<li>Typed responses with full signal access</li>
+<li>Machine-readable responses with detailed signal access</li>
 <li>Zero configuration — no API keys, no signup</li>
 </ul>
 

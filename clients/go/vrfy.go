@@ -101,6 +101,11 @@ func (c *Client) ValidateOpts(email string, opts *Options) (*Result, error) {
 
 // ValidateBatch checks up to 20 email addresses.
 func (c *Client) ValidateBatch(emails []string) (*BatchResult, error) {
+	return c.ValidateBatchOpts(emails, nil)
+}
+
+// ValidateBatchOpts checks up to 20 email addresses with options.
+func (c *Client) ValidateBatchOpts(emails []string, opts *Options) (*BatchResult, error) {
 	if len(emails) == 0 {
 		return nil, fmt.Errorf("vrfy: empty email list")
 	}
@@ -109,6 +114,10 @@ func (c *Client) ValidateBatch(emails []string) (*BatchResult, error) {
 	}
 
 	body := batchRequest{Emails: emails}
+	if opts != nil {
+		body.Quick = opts.Quick
+		body.Force = opts.Force
+	}
 	data, err := c.doWithPow(c.BaseURL+"/batch", body)
 	if err != nil {
 		return nil, err

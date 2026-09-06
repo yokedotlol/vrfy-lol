@@ -97,6 +97,8 @@ def main() -> None:
 
             if any(r["action"] == "block" for r in all_results):
                 sys.exit(1)
+            if any(r["action"] == "verify" for r in all_results):
+                sys.exit(2)
 
     except VrfyError as e:
         print(f"Error: {e}", file=sys.stderr)

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ─── vrfy.sh — Email validation from your terminal ───
-# No dependencies beyond curl + openssl.
+# Requires curl + openssl + xxd.
 # Part of the .lol family: https://vrfy.lol
 #
 # Usage:
 #   ./vrfy.sh user@example.com
 #   ./vrfy.sh user@example.com admin@company.com
-#   curl -sL vrfy.lol/vrfy.sh | bash -s -- user@example.com
+#   curl -sL https://raw.githubusercontent.com/yokedotlol/vrfy-lol/main/clients/bash/vrfy.sh | bash -s -- user@example.com
 #   echo "user@example.com" | ./vrfy.sh -
 #   ./vrfy.sh --batch emails.txt
 #   ./vrfy.sh --json user@example.com
@@ -73,7 +73,7 @@ EOF
 
 # ─── PoW Solver ───
 # Find nonce where SHA-256(challenge:nonce) has >= difficulty leading zero bits.
-# Uses openssl for hashing — available everywhere curl is.
+# Uses openssl for hashing and xxd for binary-to-hex conversion.
 
 solve_pow() {
   local challenge="$1"
@@ -299,6 +299,7 @@ fi
 
 # Batch — up to 20 at a time
 HAS_BLOCK=false
+HAS_VERIFY=false
 FIRST=true
 for ((i = 0; i < ${#EMAILS[@]}; i += 20)); do
   chunk=("${EMAILS[@]:$i:20}")
@@ -314,6 +315,8 @@ for ((i = 0; i < ${#EMAILS[@]}; i += 20)); do
   [ "$QUICK" = true ] && body="{\"emails\":[$json_emails],\"quick\":true}"
 
   result=$(vrfy_post "$BASE_URL/batch" "$body")
+  echo "$result" | grep -Eq '"action"[[:space:]]*:[[:space:]]*"block"' && HAS_BLOCK=true
+  echo "$result" | grep -Eq '"action"[[:space:]]*:[[:space:]]*"verify"' && HAS_VERIFY=true
 
   if $JSON_OUTPUT; then
     echo "$result"
@@ -327,8 +330,6 @@ for ((i = 0; i < ${#EMAILS[@]}; i += 20)); do
         FIRST=false
         item=$(echo "$result" | jq ".results[$j]")
         print_result "$item"
-        action=$(echo "$item" | jq -r '.action')
-        [ "$action" = "block" ] && HAS_BLOCK=true
       done
     else
       # Fallback: print raw JSON
@@ -338,4 +339,5 @@ for ((i = 0; i < ${#EMAILS[@]}; i += 20)); do
 done
 
 $HAS_BLOCK && exit 1
+$HAS_VERIFY && exit 2
 exit 0

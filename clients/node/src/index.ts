@@ -233,7 +233,7 @@ export interface SecurityResult {
 export interface MetaResult {
   signals: number;
   signals_positive: number;
-  cached: boolean;
+  cached?: boolean;
   query_ms: number;
   version: string;
 }

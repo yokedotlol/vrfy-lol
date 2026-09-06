@@ -46,7 +46,6 @@ curl -s -X POST https://vrfy.lol/batch \
   "_meta": {
     "signals": 28,
     "signals_positive": 24,
-    "cached": false,
     "query_ms": 142,
     "version": "1.0.0"
   }
@@ -125,7 +124,7 @@ The API returns a `pow` object with rate-limit responses. See `/api/docs` for th
 ## Usage
 
 ```bash
-# Quick validation (syntax + MX only)
+# Quick validation (skips security and extended network checks)
 curl -s -X POST https://vrfy.lol/ \
   -H 'Content-Type: application/json' \
   -d '{"email": "user@example.com", "quick": true}' | jq

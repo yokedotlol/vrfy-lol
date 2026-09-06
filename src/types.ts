@@ -151,7 +151,7 @@ export interface MetaResult {
 /** POST / request body */
 export interface ValidateRequest {
   email: string;
-  /** Bypass cache */
+  /** Bypass the domain-level cache */
   force?: boolean;
   /** Tier 1 only, skip enrichment/security */
   quick?: boolean;

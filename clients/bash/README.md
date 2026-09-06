@@ -2,7 +2,7 @@
 
 Standalone bash script for [vrfy.lol](https://vrfy.lol) email validation.
 
-Zero dependencies beyond `curl` and `openssl` (both pre-installed on macOS and most Linux distros). Automatically solves proof-of-work challenges.
+Requires `curl`, `openssl`, and `xxd`. Automatically solves proof-of-work challenges.
 
 Email addresses are sent via POST to vrfy.lol — never in URLs, never logged. Raw email addresses never stored — extended cache HMAC 30d. You can always self-host if you need privacy.
 
@@ -69,6 +69,8 @@ VRFY_URL=https://vrfy.internal ./vrfy.sh user@example.com
 | 0 | `allow` — email looks good |
 | 1 | `block` — invalid/disposable/no MX |
 | 2 | `verify` — send a verification email |
+
+For batches, `block` takes precedence over `verify`.
 
 ## Environment Variables
 

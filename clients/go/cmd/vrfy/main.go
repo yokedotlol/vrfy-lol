@@ -128,7 +128,7 @@ Examples:
 					end = len(emails)
 				}
 				chunk := emails[i:end]
-				batch, err := client.ValidateBatch(chunk)
+				batch, err := client.ValidateBatchOpts(chunk, &vrfy.Options{Quick: quick})
 				if err != nil {
 					return fmt.Errorf("batch %d-%d: %w", i+1, end, err)
 				}
@@ -146,11 +146,18 @@ Examples:
 				printResult(&r)
 			}
 
-			// Exit 1 if any blocked
+			// For batches, block takes precedence over verify.
+			hasVerify := false
 			for _, r := range allResults {
 				if r.Action == "block" {
 					os.Exit(1)
 				}
+				if r.Action == "verify" {
+					hasVerify = true
+				}
+			}
+			if hasVerify {
+				os.Exit(2)
 			}
 			return nil
 		},

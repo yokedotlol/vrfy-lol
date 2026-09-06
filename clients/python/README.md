@@ -74,6 +74,8 @@ python -m vrfy --quick user@example.com
 | 1 | `block` — invalid/disposable/no MX |
 | 2 | `verify` — send a verification email |
 
+For batches, `block` takes precedence over `verify`.
+
 ## How It Works
 
 When the free rate limit is exceeded (10/hour + 50/day per IP), the API returns a proof-of-work challenge. This client solves it automatically using SHA-256 hashcash. No API keys, no accounts, no billing.

@@ -120,6 +120,7 @@ https://vrfy.lol`);
   }
 
   if (allResults.some(r => r.action === 'block')) process.exit(1);
+  if (allResults.some(r => r.action === 'verify')) process.exit(2);
 }
 
 function printResult(r: VrfyResult): void {
