@@ -17,7 +17,7 @@ Free, open-source email address validation API at [vrfy.lol](https://vrfy.lol). 
 > **Phase 2:** A Go probe service on Fly.io (`vrfy-probe/`) is planned for DNSBL queries that require direct DNS resolution.
 
 ### Storage
-- **KV `CACHE`** — domain-level result cache (7-day TTL, key `domain:{domain}`) + HMAC-pseudonymized extended validation cache (30-day TTL, key `extended:{hmac(email)}`). Raw email addresses are never stored; extended cache uses HMAC-SHA256 with `CACHE_SECRET`.
+- **KV `CACHE`** — domain-level result cache (7-day TTL, key `domain:{hmac(domain)}`) + HMAC-pseudonymized extended validation cache (30-day TTL, key `extended:{hmac(email)}`). Raw email addresses are never stored and requested domains never appear in key material; both caches use HMAC-SHA256 with `CACHE_SECRET`.
 - **Durable Object `RateLimiterDO`** — per-IP rate limiting (10/hour + 50/day). vrfy is the family exception: cache hits still count (otherwise cached results would be free rides on another user's PoW).
 
 ### Self-Hosting

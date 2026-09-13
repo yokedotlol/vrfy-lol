@@ -169,7 +169,7 @@ npx wrangler deploy
 
 - **POST-only (405 on GET)** — emails never appear in URLs, server logs, CDN analytics, or browser history
 - **Raw email never stored** — only derivatives cached; raw email processed in memory and discarded
-- **Domain cache 7d** — `domain:{domain}` — DNS/MX/provider results, no email addresses
+- **Domain cache 7d** — `domain:{hmac}` (HMAC-SHA256 of the domain) — DNS/MX/provider results, no email addresses, requested domains never in key material
 - **Extended cache 30d** — `extended:{hmac}` — HMAC-SHA256(email) pseudonymized key, 30 days fixed, not reversible
 - **HMAC-keyed** — email-level cache uses HMAC-SHA256 with server secret; raw email never stored as key
 - **Hashed IP only** — rate limiting via `IP_HASH_SALT`-hashed IP in Durable Object, counters expire, no raw IP logs retained

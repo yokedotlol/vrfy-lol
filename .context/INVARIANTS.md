@@ -10,8 +10,8 @@
 - [ ] **`action` field in every response.** Every validation response includes `action: "allow" | "verify" | "block"`.
   - _Verify:_ Check response type in `types.ts`.
 
-- [ ] **Email addresses never in persistent storage.** Raw addresses never stored. Domain cache is domain-only (`domain:{domain}`); extended cache uses HMAC (`extended:{hmac(email)}`) so raw addresses are never stored.
-  - _Verify:_ `grep -rn "CACHE.put" src/` — domain cache key is `domain:${domain}`, extended cache key is `extended:` + hex(HMAC). No raw `@` in keys.
+- [ ] **Email addresses never in persistent storage.** Raw addresses never stored. Domain cache is domain-keyed via HMAC (`domain:{hmac(domain)}`); extended cache uses HMAC (`extended:{hmac(email)}`) so raw addresses are never stored.
+  - _Verify:_ `grep -rn "CACHE.put" src/` — domain cache key is `domain:` + hex(HMAC), extended cache key is `extended:` + hex(HMAC). No raw `@` in keys.
 
 - [ ] **No accounts, no API keys.** Rate limiting is IP-based only.
   - _Verify:_ `grep -r 'api.key\|apikey\|api_key\|authorization.*bearer' src/` — should only find probe auth, never user-facing auth.

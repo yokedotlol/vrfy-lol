@@ -1012,7 +1012,7 @@ function aboutPage(): string {
 <p>vrfy.lol does everything DNS can tell you and is honest about the rest. For most sign-up flows, that's enough. For "does this specific mailbox exist?" — send a verification email. That's always been the only reliable answer.</p>
 
 <h2>Privacy</h2>
-<p>Email validation uses <code>POST /</code> exclusively (405 on GET). Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses never stored — extended cache HMAC 30d (<code>extended:{hmac}</code> HMAC-SHA256), domain cache 7d (<code>domain:{domain}</code>). Cloudflare edge logs not accessed. Hashed IP only for rate limiting (IP_HASH_SALT). No analytics, no cookies, no accounts.</p>
+<p>Email validation uses <code>POST /</code> exclusively (405 on GET). Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses never stored — extended cache HMAC 30d (<code>extended:{hmac}</code> HMAC-SHA256), domain cache HMAC 7d (<code>domain:{hmac}</code> HMAC-SHA256). Cloudflare edge logs not accessed. Hashed IP only for rate limiting (IP_HASH_SALT). No analytics, no cookies, no accounts.</p>
 
 <h2>Self-hosting</h2>
 <p>Fork the repo and run your own: <code>wrangler deploy</code>. Zero external dependencies for core validation.</p>
@@ -1113,6 +1113,9 @@ function docsPage(): string {
 <h2>Cross-origin</h2>
 <p>Full CORS support. <code>Access-Control-Allow-Origin: *</code> on all responses.</p>
 
+<h2>Privacy</h2>
+<p>Email validation uses <code>POST /</code> exclusively (405 on GET). Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses are never stored: the extended validation cache is keyed by <code>HMAC-SHA256</code> (30d, <code>extended:{hmac}</code>) and the domain-level cache is keyed the same way (7d, <code>domain:{hmac}</code>). No accounts, no tracking. Proof-of-work replaces API keys. You can always self-host if you need privacy. See <a href="/privacy">/privacy</a> for the full policy.</p>
+
 <h2>Family links</h2>
 <ul>
 <li><a href="https://yoke.lol">yoke.lol</a> — domain intelligence</li>
@@ -1133,7 +1136,7 @@ function privacyPage(): string {
 
 <h3>What we store</h3>
 <ul>
-<li><strong>Domain-level cache:</strong> DNS results (MX, provider, etc.) cached by domain name for 7 days. No email addresses stored.</li>
+<li><strong>Domain-level cache:</strong> DNS results (MX, provider, etc.) cached for 7 days under a pseudonymized key (<code>HMAC-SHA256</code> with a server secret — requested domains never appear as cache keys). No email addresses stored.</li>
 <li><strong>Extended validation cache:</strong> Results cached by pseudonymized key (<code>HMAC-SHA256</code>) for 30 days. Raw email addresses are never stored.</li>
 <li><strong>No analytics, no cookies, no accounts.</strong></li>
 </ul>

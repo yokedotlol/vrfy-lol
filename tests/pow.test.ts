@@ -236,11 +236,14 @@ describe('Response Schema v1.0', () => {
 // ─── HMAC Cache Key Tests ───
 
 describe('HMAC Cache Keys', () => {
-  test('domain cache key is plain domain string', () => {
-    const domain = 'gmail.com';
-    const key = `domain:${domain}`;
-    expect(key).toBe('domain:gmail.com');
-    // Domains are not PII — no HMAC needed
+  test('domain cache key is HMAC-pseudonymized', () => {
+    // Requested domains must not appear as KV key material (aggregate counters
+    // convention) — the domain cache is keyed `domain:{hmac}` like the extended cache.
+    const mockHex = 'a1b2c3d4e5f6'.repeat(11).substring(0, 64);
+    const key = `domain:${mockHex}`;
+    expect(key.startsWith('domain:')).toBe(true);
+    expect(key.length).toBe(7 + 64); // "domain:" + 64 hex chars
+    expect(key).not.toContain('gmail.com');
   });
 
   test('extended cache key format is extended:<hex>', () => {

@@ -119,7 +119,7 @@ export async function validateEmail(
     );
   }
 
-  // Step 2: Check domain-level cache (key is plain domain — not PII)
+  // Step 2: Check domain-level cache (HMAC-keyed: requested domains are aggregate-counter safe)
   let cached = false;
   let domainCache: DomainCacheEntry | null = null;
 
@@ -460,10 +460,11 @@ async function callExtendedValidation(
 }
 
 /**
- * Compute HMAC-SHA-256 cache key for email-level data.
+ * Compute HMAC-SHA-256 cache key for email/domain-level data.
  * Uses CACHE_SECRET (Workers secret) so keys can't be reversed.
+ * Prefix distinguishes namespaces (e.g. 'extended' for email, 'domain' for domain).
  */
-async function hmacCacheKey(secret: string, email: string): Promise<string> {
+async function hmacCacheKey(secret: string, value: string, prefix = 'extended'): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
@@ -474,19 +475,20 @@ async function hmacCacheKey(secret: string, email: string): Promise<string> {
   const sig = await crypto.subtle.sign(
     'HMAC',
     key,
-    new TextEncoder().encode(email.toLowerCase()),
+    new TextEncoder().encode(value.toLowerCase()),
   );
   const hex = Array.from(new Uint8Array(sig))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
-  return `extended:${hex}`;
+  return `${prefix}:${hex}`;
 }
 
 // ─── Cache helpers ───
 
 async function getDomainCache(env: Env, domain: string): Promise<DomainCacheEntry | null> {
   try {
-    const key = `domain:${domain}`;
+    // HMAC-keyed: requested domains never appear as KV key material (2026-09-13 drift fix)
+    const key = await hmacCacheKey(env.CACHE_SECRET, domain, 'domain');
     const raw = await env.CACHE.get(key);
     if (!raw) return null;
 
@@ -505,10 +507,13 @@ async function getDomainCache(env: Env, domain: string): Promise<DomainCacheEntr
 
 async function putDomainCache(env: Env, domain: string, entry: DomainCacheEntry): Promise<void> {
   try {
-    const key = `domain:${domain}`;
+    const key = await hmacCacheKey(env.CACHE_SECRET, domain, 'domain');
     await env.CACHE.put(key, JSON.stringify(entry), {
       expirationTtl: DOMAIN_CACHE_TTL,
     });
+    // Best-effort cleanup of legacy plain-key entries (`domain:{domain}`).
+    // Remaining legacy keys expire via their 7-day TTL (drift fix 2026-09-13).
+    await env.CACHE.delete(`domain:${domain.toLowerCase()}`);
   } catch {
     // Cache write failure is non-fatal
   }
