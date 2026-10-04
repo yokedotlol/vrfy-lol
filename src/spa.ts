@@ -1012,10 +1012,10 @@ function aboutPage(): string {
 <p>vrfy.lol does everything DNS can tell you and is honest about the rest. For most sign-up flows, that's enough. For "does this specific mailbox exist?" — send a verification email. That's always been the only reliable answer.</p>
 
 <h2>Privacy</h2>
-<p>Email validation uses <code>POST /</code> exclusively (405 on GET). Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses never stored — extended cache HMAC 30d (<code>extended:{hmac}</code> HMAC-SHA256), domain cache HMAC 7d (<code>domain:{hmac}</code> HMAC-SHA256). Cloudflare edge logs not accessed. Hashed IP only for rate limiting (IP_HASH_SALT). No analytics, no cookies, no accounts.</p>
+<p>Email validation uses <code>POST /</code> exclusively — an email submitted in a GET path returns 405. Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses never stored — extended cache HMAC 30d (<code>extended:{hmac}</code> HMAC-SHA256), domain cache HMAC 7d (<code>domain:{hmac}</code> HMAC-SHA256). Cloudflare edge logs not accessed. Hashed IP only for rate limiting (IP_HASH_SALT). No analytics, no cookies, no accounts.</p>
 
 <h2>Self-hosting</h2>
-<p>Fork the repo and run your own: <code>wrangler deploy</code>. Zero external dependencies for core validation.</p>
+<p>Fork the repo and run your own: <code>wrangler deploy</code>. Core validation runs on Cloudflare Workers and uses a public DNS-over-HTTPS resolver (Cloudflare DoH by default) for DNS checks.</p>
 <p><a href="https://github.com/yokedotlol/vrfy-lol">github.com/yokedotlol/vrfy-lol</a></p>
 
 <h2>Contact</h2>
@@ -1037,7 +1037,7 @@ function aboutPage(): string {
 function docsPage(): string {
   return `<div class="content-page">
 <h2>API Reference</h2>
-<p>All endpoints. No authentication required.</p>
+<p>Primary public endpoints — no authentication required. Admin endpoints (<code>/usage</code>, <code>/api/usage</code>) require HTTP Basic Auth when <code>ADMIN_KEY</code> is set.</p>
 <p><strong>Machine-readable:</strong> <a href="/openapi.json">openapi.json</a> (<a href="/api/openapi.json">/api/openapi.json</a>) · <a href="/.well-known/ai-catalog.json">ai-catalog.json</a></p>
 
 <h3>POST /</h3>
@@ -1051,7 +1051,7 @@ function docsPage(): string {
 <table>
 <tr><th>Field</th><th>Type</th><th>Description</th></tr>
 <tr><td><code>email</code></td><td>string</td><td>Required. Email address to validate.</td></tr>
-<tr><td><code>quick</code></td><td>boolean</td><td>Skip enrichment/security (Tier 1 only). Default false.</td></tr>
+<tr><td><code>quick</code></td><td>boolean</td><td>Skip enrichment/security and extended third-party lookups (Tier 1 only). Default false.</td></tr>
 <tr><td><code>force</code></td><td>boolean</td><td>Bypass the domain-level cache. Default false.</td></tr>
 <tr><td><code>pow</code></td><td>object</td><td>Proof-of-work solution (for unlimited access). <a href="/pow">See protocol →</a></td></tr>
 </table>
@@ -1114,7 +1114,7 @@ function docsPage(): string {
 <p>Full CORS support. <code>Access-Control-Allow-Origin: *</code> on all responses.</p>
 
 <h2>Privacy</h2>
-<p>Email validation uses <code>POST /</code> exclusively (405 on GET). Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses are never stored: the extended validation cache is keyed by <code>HMAC-SHA256</code> (30d, <code>extended:{hmac}</code>) and the domain-level cache is keyed the same way (7d, <code>domain:{hmac}</code>). No accounts, no tracking. Proof-of-work replaces API keys. You can always self-host if you need privacy. See <a href="/privacy">/privacy</a> for the full policy.</p>
+<p>Email validation uses <code>POST /</code> exclusively — an email submitted in a GET path returns 405. Email addresses never appear in URLs, server logs, CDN analytics, or browser history. Raw email addresses are never stored: the extended validation cache is keyed by <code>HMAC-SHA256</code> (30d, <code>extended:{hmac}</code>) and the domain-level cache is keyed the same way (7d, <code>domain:{hmac}</code>). No accounts, no tracking. Proof-of-work replaces API keys. You can always self-host if you need privacy. See <a href="/privacy">/privacy</a> for the full policy.</p>
 
 <h2>Family links</h2>
 <ul>
@@ -1142,19 +1142,19 @@ function privacyPage(): string {
 </ul>
 
 <h3>Third-party lookups</h3>
-<p>Extended validation checks whether an email address has a public presence across identity, cryptographic key, and reputation services. When extended validation is requested, the email address (or a one-way hash of it) may be sent to third-party APIs for lookup.</p>
+<p>Extended validation checks whether an email address has a public presence across identity, cryptographic key, and reputation services. It runs automatically on full (non-quick) validations when the extended module is bound — use <code>quick: true</code> to skip it. The email address (or a one-way hash of it) may be sent to third-party APIs for lookup.</p>
 <ul>
 <li><strong>Hash-only services</strong> — some lookups use only a cryptographic hash (MD5 or SHA-256) of the email, never the raw address (e.g., avatar services, DNS-based key discovery).</li>
 <li><strong>Full-address services</strong> — other lookups require the full email address (e.g., key servers, reputation APIs, code hosting platforms, identity directories).</li>
 </ul>
-<p>The specific services queried are part of the closed-source extended validation module. All lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
+<p>The extended checks cover services such as Gravatar, GitHub, WebFinger providers, PGP key servers, Keybase, XON, Libravatar, GitLab, Microsoft, and EmailRep (full list in the README). All lookups happen server-side and responses are cached. No data is shared with advertising or analytics services.</p>
 
 <h3>Legal basis</h3>
 <p>Third-party lookups for extended validation are performed under legitimate interest (GDPR Article 6(1)(f)) for email fraud prevention. Only the minimum data required by each service is transmitted — a cryptographic hash where supported, the full address only where the service requires it. No data is retained beyond the active cache window.</p>
 <p>For business use, a Data Processing Agreement (DPA) is available on request — contact <a href="mailto:hello@yoke.lol">hello@yoke.lol</a>.</p>
 
 <h3>Server logs</h3>
-<p>Cloudflare processes requests as our CDN and compute provider. Their standard edge logs (IP, URL, timestamp) are subject to <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. We do not access, store, or process these logs.</p>
+<p>Cloudflare processes requests as our CDN and compute provider. Their standard edge logs (IP, URL, timestamp) are subject to <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. We do not access, store, or process these logs. The web UI loads fonts from Google Fonts, which receives your IP address when the font stylesheet is fetched.</p>
 
 <h3>IP addresses</h3>
 <p>For rate limiting and proof-of-work, we store an IP-derived hashed key in a Cloudflare Durable Object. These counters expire automatically and contain no personally identifiable information beyond the hashed key. No raw IP address logs are retained on our side beyond the active rate limiting window.</p>
@@ -1386,7 +1386,7 @@ function usagePage(): string {
 </div>
 
 <p class="status-note" style="margin-top: 1.5rem;">
-  Stats are tracked via shared KV. Counters use UTC dates with 48h auto-expiry. XON self-limits at 90 calls/day per worker IP.
+  XON usage counters are tracked in shared KV by UTC date.
 </p>
 </div>`;
 }

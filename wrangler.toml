@@ -29,11 +29,13 @@ zone_name = "vrfy.lol"
 # Secrets (set via `wrangler secret put`):
 #   CACHE_SECRET  — HMAC key for email-level cache keys (pseudonymized)
 #   POW_SECRET    — HMAC key for PoW challenge generation (IP-bound)
+#   IP_HASH_SALT  — Salt for hashed-IP rate-limit keys (without it, a known default salt is used)
 #   FLY_AUTH_SECRET — Bearer token for Fly probe auth (Phase 2)
 #
 # Generate secrets:
 #   openssl rand -hex 32 | wrangler secret put CACHE_SECRET
 #   openssl rand -hex 32 | wrangler secret put POW_SECRET
+#   openssl rand -hex 32 | wrangler secret put IP_HASH_SALT
 
 # ─── Optional service bindings ───
 # These connect vrfy to sibling .lol services for richer signals.

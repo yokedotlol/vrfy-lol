@@ -2,7 +2,7 @@
 
 **Email validation without SMTP probes.** No accounts. No tracking. MIT licensed.
 
-vrfy.lol validates email addresses using DNS signals, domain heuristics, and public identity graphs — never by connecting to a mail server. POST-only API (405 on GET), proof-of-work abuse prevention, raw email never stored — extended cache HMAC 30d, domain cache 7d, hashed IP only for rate limiting.
+vrfy.lol validates email addresses using DNS signals, domain heuristics, and public identity graphs — never by connecting to a mail server. POST-only email validation (an email in a GET path returns 405), proof-of-work abuse prevention, raw email never stored — extended cache HMAC 30d, domain cache 7d, hashed IP only for rate limiting.
 
 ## Quick Start
 
@@ -151,6 +151,7 @@ bun run generate
 # Set secrets
 openssl rand -hex 32 | npx wrangler secret put CACHE_SECRET
 openssl rand -hex 32 | npx wrangler secret put POW_SECRET
+openssl rand -hex 32 | npx wrangler secret put IP_HASH_SALT
 
 # Deploy
 npx wrangler deploy
@@ -167,7 +168,7 @@ npx wrangler deploy
 
 ## Privacy
 
-- **POST-only (405 on GET)** — emails never appear in URLs, server logs, CDN analytics, or browser history
+- **POST-only email validation** — an email submitted in a GET path returns 405; emails never appear in URLs, server logs, CDN analytics, or browser history
 - **Raw email never stored** — only derivatives cached; raw email processed in memory and discarded
 - **Domain cache 7d** — `domain:{hmac}` (HMAC-SHA256 of the domain) — DNS/MX/provider results, no email addresses, requested domains never in key material
 - **Extended cache 30d** — `extended:{hmac}` — HMAC-SHA256(email) pseudonymized key, 30 days fixed, not reversible
