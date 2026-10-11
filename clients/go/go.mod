@@ -1,4 +1,4 @@
-module github.com/yokedotlol/vrfy
+module github.com/yokedotlol/vrfy-lol/clients/go
 
 go 1.22
 

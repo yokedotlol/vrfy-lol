@@ -18,7 +18,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
-	vrfy "github.com/yokedotlol/vrfy"
+	vrfy "github.com/yokedotlol/vrfy-lol/clients/go"
 )
 
 var (

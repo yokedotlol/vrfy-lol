@@ -76,6 +76,23 @@ export default {
     try {
       const path = url.pathname;
 
+      // POST-only applies to query strings too: refuse any GET carrying an
+      // email-shaped key/value instead of letting it sit in a URL.
+      if (isGet) {
+        for (const [key, value] of url.searchParams) {
+          if (key.includes('@') || value.includes('@')) {
+            return json({
+              error: 'method_not_allowed',
+              message: 'Email validation is POST-only. Use POST / with {"email": "..."} in the request body.',
+              docs: 'https://vrfy.lol/api/docs',
+            }, 405, {
+              ...corsHeaders,
+              'Allow': 'POST',
+            });
+          }
+        }
+      }
+
       // ── Favicon ──
 
       if (path === '/favicon.svg') {
