@@ -9,7 +9,7 @@
 | Component | Version | Source |
 |-----------|---------|--------|
 | Worker (service) | 1.0.0 | `src/index.ts` (`VERSION` const) |
-| Package | 0.1.0 | `package.json` |
+| Package | 1.0.0 | `package.json` |
 | Git tag | v1.0.0 | `git tag` |
 
 ## Architecture
@@ -140,7 +140,7 @@ Score is computed as soft-OR across weighted signals. Max theoretical ≈ 0.976.
 ## Open / Known Issues
 
 - No TODO/FIXME/HACK comments in codebase (clean)
-- Package version (0.1.0) intentionally differs from service version (1.0.0) — Worker package is private
+- Package version matches the service version (1.0.0)
 - Phase 2 (Fly.io probe for DNSBL) not started
 - Spamhaus DBL deferred pending usage data to justify spend
 - EmailRep.io free tier cap (250/month, 10/day) — platform key self-limits at 8/day

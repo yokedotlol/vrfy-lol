@@ -48,7 +48,7 @@ vrfy.lol is part of a family of developer utilities that share the same ethos an
 - **No SMTP.** Do not add SMTP verification. Ever. This is the product identity.
 - **No accounts or API keys.** IP-based rate limiting only.
 - **No `as any`.** TypeScript strict mode, no escape hatches.
-- **No bundling unlicensed data.** CC0/MIT-compatible datasets only. FakeFilter and similar unlicensed lists are API-only at runtime.
+- **No bundling unlicensed data.** Bundled datasets are CC0/ISC/MIT/BSD-licensed only — including FakeFilter (BSD-3-Clause), which ships in the bundled disposable list (see `src/data/disposable.ts` header for sources and licenses).
 - **Secrets never in code or wrangler.toml.** Use `wrangler secret put`.
 - **Email addresses never in persistent storage.** Raw addresses never stored. KV domain cache keys are domain-only; extended cache uses HMAC-SHA256 pseudonymization.
 

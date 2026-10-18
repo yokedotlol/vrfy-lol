@@ -34,7 +34,7 @@
 
 ## Rate Limiting
 
-- [ ] **10 requests/hour + 50/day per IP.** Durable Object sliding window.
+- [ ] **10 requests/hour + 50/day per IP.** Durable Object fixed hourly/daily windows.
   - _Verify:_ Check `HOURLY_LIMIT` and `DAILY_LIMIT` constants in rate limiter.
 
 - [ ] **Batch counts as 1 request.** `POST /batch` (up to 20 emails) counts as a single rate-limited request.

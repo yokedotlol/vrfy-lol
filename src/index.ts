@@ -46,6 +46,27 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
 
+    // ── POST-only guard BEFORE the redirect below: an email in a GET
+    // path/query must get the 405 here. A 301 would forward the address
+    // intact in the Location header (URLs end up in logs/history).
+    if (method === 'GET' || method === 'HEAD') {
+      let decodedPath = url.pathname;
+      try { decodedPath = decodeURIComponent(url.pathname); } catch { /* keep raw */ }
+      const queryHasEmail = [...url.searchParams].some(([k, v]) => k.includes('@') || v.includes('@'));
+      if (queryHasEmail || decodedPath.includes('@')) {
+        return json({
+          error: 'method_not_allowed',
+          message: 'Email validation is POST-only. Use POST / with {"email": "..."} in the request body.',
+          docs: 'https://vrfy.lol/api/docs',
+        }, 405, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
+          'Access-Control-Allow-Headers': 'Content-Type, Accept',
+          'Allow': 'POST',
+        });
+      }
+    }
+
     // ── HTTP → HTTPS redirect (required for HSTS preload eligibility) ──
     const cfVisitor = request.headers.get('CF-Visitor');
     if (cfVisitor) {
